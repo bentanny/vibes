@@ -107,4 +107,3 @@ export function TradingAgentChat({
     </Card>
   );
 }
-

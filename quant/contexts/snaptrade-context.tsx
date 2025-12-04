@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import { useSession } from "next-auth/react";
 
 export interface SnapTradeAccount {
@@ -83,10 +89,16 @@ interface SnapTradeContextType {
     options?: {
       orderType?: "MARKET" | "LIMIT";
       limitPrice?: number;
-    }
+    },
   ) => Promise<TradeResult>;
-  getOrders: (accountId: string, status?: "all" | "open" | "executed") => Promise<SnapTradeOrder[]>;
-  cancelOrder: (accountId: string, orderId: string) => Promise<{ success: boolean; error?: string }>;
+  getOrders: (
+    accountId: string,
+    status?: "all" | "open" | "executed",
+  ) => Promise<SnapTradeOrder[]>;
+  cancelOrder: (
+    accountId: string,
+    orderId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   checkConnection: () => Promise<void>;
   clearError: () => void;
 }
@@ -170,7 +182,10 @@ export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
       if (brokerSlug) {
         params.set("broker", brokerSlug);
       }
-      params.set("redirect", `${window.location.origin}/settings?snaptrade=connected`);
+      params.set(
+        "redirect",
+        `${window.location.origin}/settings?snaptrade=connected`,
+      );
 
       const response = await fetch(`/api/snaptrade/connect?${params}`);
       const data = await response.json();
@@ -182,7 +197,8 @@ export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
       // Redirect to SnapTrade connection portal
       window.location.href = data.url;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to connect";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to connect";
       setError(errorMessage);
       setIsLoading(false);
     }
@@ -220,126 +236,143 @@ export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
   /**
    * Get positions for an account
    */
-  const getPositions = useCallback(async (accountId: string): Promise<{
-    positions: SnapTradePosition[];
-    balances: { cash: number; total: number; currency: string } | null;
-  }> => {
-    const response = await fetch(`/api/snaptrade/positions?accountId=${accountId}`);
-    const data = await response.json();
+  const getPositions = useCallback(
+    async (
+      accountId: string,
+    ): Promise<{
+      positions: SnapTradePosition[];
+      balances: { cash: number; total: number; currency: string } | null;
+    }> => {
+      const response = await fetch(
+        `/api/snaptrade/positions?accountId=${accountId}`,
+      );
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to fetch positions");
-    }
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch positions");
+      }
 
-    return {
-      positions: data.positions,
-      balances: data.balances,
-    };
-  }, []);
+      return {
+        positions: data.positions,
+        balances: data.balances,
+      };
+    },
+    [],
+  );
 
   /**
    * Execute a trade
    */
-  const executeTrade = useCallback(async (
-    accountId: string,
-    symbol: string,
-    action: "BUY" | "SELL",
-    quantity: number,
-    options?: {
-      orderType?: "MARKET" | "LIMIT";
-      limitPrice?: number;
-    }
-  ): Promise<TradeResult> => {
-    setIsLoading(true);
-    setError(null);
+  const executeTrade = useCallback(
+    async (
+      accountId: string,
+      symbol: string,
+      action: "BUY" | "SELL",
+      quantity: number,
+      options?: {
+        orderType?: "MARKET" | "LIMIT";
+        limitPrice?: number;
+      },
+    ): Promise<TradeResult> => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch("/api/snaptrade/trade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountId,
-          symbol,
-          action,
-          quantity,
-          orderType: options?.orderType || "MARKET",
-          limitPrice: options?.limitPrice,
-        }),
-      });
+      try {
+        const response = await fetch("/api/snaptrade/trade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId,
+            symbol,
+            action,
+            quantity,
+            orderType: options?.orderType || "MARKET",
+            limitPrice: options?.limitPrice,
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Trade failed");
+        if (!response.ok) {
+          throw new Error(data.error || "Trade failed");
+        }
+
+        // Refresh accounts after trade
+        await fetchAccounts();
+
+        return {
+          success: true,
+          order: data.order,
+          message: data.message,
+        };
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Trade failed";
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
+      } finally {
+        setIsLoading(false);
       }
-
-      // Refresh accounts after trade
-      await fetchAccounts();
-
-      return {
-        success: true,
-        order: data.order,
-        message: data.message,
-      };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Trade failed";
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchAccounts]);
+    },
+    [fetchAccounts],
+  );
 
   /**
    * Get order history for an account
    */
-  const getOrders = useCallback(async (
-    accountId: string,
-    status?: "all" | "open" | "executed"
-  ): Promise<SnapTradeOrder[]> => {
-    const params = new URLSearchParams({ accountId });
-    if (status) {
-      params.set("status", status);
-    }
+  const getOrders = useCallback(
+    async (
+      accountId: string,
+      status?: "all" | "open" | "executed",
+    ): Promise<SnapTradeOrder[]> => {
+      const params = new URLSearchParams({ accountId });
+      if (status) {
+        params.set("status", status);
+      }
 
-    const response = await fetch(`/api/snaptrade/orders?${params}`);
-    const data = await response.json();
+      const response = await fetch(`/api/snaptrade/orders?${params}`);
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to fetch orders");
-    }
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch orders");
+      }
 
-    return data.orders;
-  }, []);
+      return data.orders;
+    },
+    [],
+  );
 
   /**
    * Cancel an order
    */
-  const cancelOrder = useCallback(async (
-    accountId: string,
-    orderId: string
-  ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const response = await fetch("/api/snaptrade/orders", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountId, orderId }),
-      });
+  const cancelOrder = useCallback(
+    async (
+      accountId: string,
+      orderId: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const response = await fetch("/api/snaptrade/orders", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountId, orderId }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to cancel order");
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to cancel order");
+        }
+
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : "Failed to cancel order",
+        };
       }
-
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : "Failed to cancel order",
-      };
-    }
-  }, []);
+    },
+    [],
+  );
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -371,9 +404,9 @@ export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
 export function useSnapTradeContext() {
   const context = useContext(SnapTradeContext);
   if (!context) {
-    throw new Error("useSnapTradeContext must be used within a SnapTradeProvider");
+    throw new Error(
+      "useSnapTradeContext must be used within a SnapTradeProvider",
+    );
   }
   return context;
 }
-
-
