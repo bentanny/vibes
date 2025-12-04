@@ -10,7 +10,7 @@ import {
 } from "@heroui/navbar";
 import NextLink from "next/link";
 
-import { ThemeSwitch } from "@/components/theme-switch";
+import { ThemeSwitch } from "@/components/antiquated/theme-switch";
 import { Logo } from "@/components/icons";
 import { RollingText } from "@/components/ui/shadcn-io/rolling-text";
 
@@ -46,7 +46,16 @@ export const Navbar = () => {
 
   return (
     <HeroUINavbar
-      className={`backdrop-blur-md fixed mx-auto right-0 left-0 mt-2 sm:w-10/12 md:w-3/5 lg:w-3/5 xl:w-3/5 2xl:w-2/5 rounded-2xl shadow-lg bg-background`}
+      className={`backdrop-blur-md fixed mx-auto right-0 left-0 mt-2 sm:w-10/12 md:w-3/5 lg:w-3/5 xl:w-3/5 2xl:w-2/5`}
+      classNames={{
+        base: "!bg-background dark:!bg-zinc-900 bg-opacity-100",
+      }}
+      style={{
+        background:
+          resolvedTheme === "dark" ? "#18181b" : "hsl(var(--background))",
+        backgroundImage: "none",
+        backgroundSize: "auto",
+      }}
       maxWidth="xl"
       position="sticky"
     >
@@ -61,7 +70,7 @@ export const Navbar = () => {
               <Logo />
             </div>
             <RollingText
-              className="font-bold text-inherit overflow-hidden whitespace-nowrap relative ml-7 transition-all duration-300 group-hover:-translate-x-full group-hover:opacity-0"
+              className="font-mono font-bold text-inherit overflow-hidden whitespace-nowrap relative ml-7 transition-all duration-300 group-hover:-translate-x-full group-hover:opacity-0"
               text="QUANT"
               autoTrigger={true}
               autoTriggerInterval={100000}

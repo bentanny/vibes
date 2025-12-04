@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Send, GripVertical, CheckCircle2 } from "lucide-react";
-import { Button as HeroButton } from "@heroui/button";
+import { Send, GripVertical, CheckCircle2 } from "lucide-react";
 import { CompanyLogo } from "@/components/company-logo";
+import { useStockPrice } from "@/hooks/use-stock-price";
+import { Spinner } from "@heroui/spinner";
 
 type ConditionType = "and" | "or";
 
@@ -43,8 +43,17 @@ const getColorClass = (color: string, type: "bg" | "text" = "bg") => {
   return colorMap[color]?.[type] || colorMap["emerald-600"][type];
 };
 
-export function StrategyCard() {
-  const { theme } = useTheme();
+interface StrategyCardProps {
+  symbol?: string;
+  companyDomain?: string;
+  strategyName?: string;
+}
+
+export function StrategyCard({
+  symbol = "TSLA",
+  companyDomain = "tesla.com",
+  strategyName = "Smart Buy Strategy",
+}: StrategyCardProps) {
   const [isAddingCondition, setIsAddingCondition] = useState(false);
   const [newConditionText, setNewConditionText] = useState("");
   const [draggedConditionId, setDraggedConditionId] = useState<string | null>(
@@ -52,6 +61,10 @@ export function StrategyCard() {
   );
   const [dragOverGroupType, setDragOverGroupType] =
     useState<ConditionType | null>(null);
+
+  // Real-time stock price from Finnhub
+  const { price, changePercent, isLoading, isConnected } =
+    useStockPrice(symbol);
 
   // Initialize with existing conditions
   const [andConditions, setAndConditions] = useState<Condition[]>([
@@ -181,37 +194,54 @@ export function StrategyCard() {
   };
 
   return (
-    <Card className="w-full max-w-2xl overflow-hidden border border-gray-300 dark:border-zinc-900 shadow-2xl bg-[#ECE9E2] dark:bg-black transition-colors duration-200">
+    <Card className="w-full max-w-2xl overflow-hidden shadow-2xl">
       {/* Header Section */}
-      <div className="relative bg-[#ECE9E2] dark:bg-black p-8 border-b border-gray-300 dark:border-zinc-900 transition-colors duration-200">
+      <div className="relative p-8 border-b border-default-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <CompanyLogo domain="tesla.com" size={56} radius="sm" />
+            <CompanyLogo domain={companyDomain} size={56} radius="sm" />
 
             <div className="space-y-1">
-              <h2 className="text-3xl font-light tracking-tight text-gray-900 dark:text-white transition-colors duration-200">
-                Smart Buy Strategy
+              <h2 className="text-3xl font-light tracking-tight text-default-foreground">
+                {strategyName}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-zinc-500 font-mono tracking-wide transition-colors duration-200">
-                AUTOMATED EXECUTION
+              <p className="text-sm text-default-500 font-mono tracking-wide flex items-center gap-2">
+                {symbol}
+                {isConnected && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                )}
               </p>
             </div>
           </div>
 
           <div className="text-right space-y-0.5">
-            <div className="text-2xl font-light text-gray-900 dark:text-white tracking-tight transition-colors duration-200">
-              $352.48
-            </div>
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-mono tracking-wider transition-colors duration-200">
-              +2.4%
-            </div>
+            {isLoading ? (
+              <Spinner size="sm" color="default" />
+            ) : (
+              <>
+                <div className="text-2xl font-light text-default-foreground tracking-tight">
+                  {price !== null ? `$${price.toFixed(2)}` : "—"}
+                </div>
+                <div
+                  className={`text-xs font-mono tracking-wider ${
+                    changePercent !== null && changePercent >= 0
+                      ? "text-success"
+                      : "text-danger"
+                  }`}
+                >
+                  {changePercent !== null
+                    ? `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`
+                    : "—"}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Conditions Section */}
-      <div className="p-8 bg-[#ECE9E2] dark:bg-black border-b border-gray-300 dark:border-zinc-900 transition-colors duration-200">
-        <h3 className="text-sm font-mono tracking-widest text-gray-600 dark:text-zinc-500 mb-6 transition-colors duration-200">
+      <div className="p-8 border-b border-default-200">
+        <h3 className="text-sm font-mono tracking-widest text-default-500 mb-6">
           TRIGGERS
         </h3>
 
@@ -219,7 +249,7 @@ export function StrategyCard() {
           {/* AND Conditions Group */}
           {andConditions.length > 0 && (
             <div
-              className={`space-y-0 transition-all duration-200 ${dragOverGroupType === "and" ? "ring-2 ring-gray-400 dark:ring-zinc-700 rounded" : ""}`}
+              className={`space-y-0 transition-all duration-200 ${dragOverGroupType === "and" ? "ring-2 ring-default-300 rounded" : ""}`}
               onDragOver={(e) => handleDragOver(e, "and")}
               onDrop={(e) => handleDrop(e, "and")}
               onDragLeave={handleDragLeave}
@@ -227,8 +257,8 @@ export function StrategyCard() {
               {andConditions.map((condition, index) => (
                 <div key={condition.id}>
                   {index > 0 && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-[#ECE9E2] dark:bg-black border-x border-gray-300 dark:border-zinc-900 transition-colors duration-200">
-                      <span className="text-xs font-mono text-gray-600 dark:text-zinc-500 tracking-wider transition-colors duration-200">
+                    <div className="flex items-center gap-2 px-4 py-2 border-x border-default-200">
+                      <span className="text-xs font-mono text-default-500 tracking-wider">
                         AND
                       </span>
                     </div>
@@ -239,42 +269,42 @@ export function StrategyCard() {
                     onDragEnd={handleDragEnd}
                     className={`border ${
                       index === 0
-                        ? "border-gray-300 dark:border-zinc-800 rounded-t"
-                        : "border-x border-gray-300 dark:border-zinc-800"
+                        ? "border-default-200 rounded-t"
+                        : "border-x border-default-200"
                     } ${
                       index === andConditions.length - 1
-                        ? "border-b border-gray-300 dark:border-zinc-800 rounded-b"
+                        ? "border-b border-default-200 rounded-b"
                         : ""
-                    } bg-white dark:bg-[#171219] p-6 hover:border-gray-400 dark:hover:border-zinc-800 transition-colors duration-200 cursor-move ${
+                    } bg-default-100 p-6 hover:border-default-300 cursor-move ${
                       draggedConditionId === condition.id ? "opacity-50" : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-3">
-                          <GripVertical className="w-3 h-3 text-gray-400 dark:text-zinc-700 transition-colors duration-200" />
+                          <GripVertical className="w-3 h-3 text-default-400" />
                           <div
-                            className={`w-1 h-1 ${getColorClass(condition.highlightColor, "bg")} transition-colors duration-200`}
+                            className={`w-1 h-1 ${getColorClass(condition.highlightColor, "bg")}`}
                           />
-                          <span className="text-xs font-mono text-gray-600 dark:text-zinc-500 tracking-wider transition-colors duration-200">
+                          <span className="text-xs font-mono text-default-500 tracking-wider">
                             {condition.isMainTrigger
                               ? "BUY TRIGGER"
                               : "AND CONDITION"}
                           </span>
                         </div>
-                        <p className="text-lg font-light text-gray-900 dark:text-white text-balance leading-relaxed transition-colors duration-200">
+                        <p className="text-lg font-light text-default-foreground text-balance leading-relaxed">
                           {condition.title}{" "}
                           <span
-                            className={`font-normal ${getColorClass(condition.highlightColor, "text")} transition-colors duration-200`}
+                            className={`font-normal ${getColorClass(condition.highlightColor, "text")}`}
                           >
                             {condition.highlightText}
                           </span>
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-zinc-600 font-light transition-colors duration-200">
+                        <p className="text-sm text-default-500 font-light">
                           {condition.description}
                         </p>
                       </div>
-                      <CheckCircle2 className="w-5 h-5 text-gray-400 dark:text-zinc-700 flex-shrink-0 transition-colors duration-200" />
+                      <CheckCircle2 className="w-5 h-5 text-default-400 flex-shrink-0" />
                     </div>
                   </div>
                 </div>
@@ -285,18 +315,18 @@ export function StrategyCard() {
           {/* OR Divider - only show if we have both groups */}
           {andConditions.length > 0 && orConditions.length > 0 && (
             <div className="flex items-center gap-2 py-2">
-              <div className="flex-1 border-t border-gray-300 dark:border-zinc-900 transition-colors duration-200"></div>
-              <span className="text-xs font-mono text-gray-600 dark:text-zinc-500 tracking-wider transition-colors duration-200">
+              <div className="flex-1 border-t border-default-200"></div>
+              <span className="text-xs font-mono text-default-500 tracking-wider">
                 OR
               </span>
-              <div className="flex-1 border-t border-gray-300 dark:border-zinc-900 transition-colors duration-200"></div>
+              <div className="flex-1 border-t border-default-200"></div>
             </div>
           )}
 
           {/* OR Conditions */}
           {orConditions.length > 0 && (
             <div
-              className={`space-y-4 transition-all duration-200 ${dragOverGroupType === "or" ? "ring-2 ring-gray-400 dark:ring-zinc-700 rounded" : ""}`}
+              className={`space-y-4 transition-all duration-200 ${dragOverGroupType === "or" ? "ring-2 ring-default-300 rounded" : ""}`}
               onDragOver={(e) => handleDragOver(e, "or")}
               onDrop={(e) => handleDrop(e, "or")}
               onDragLeave={handleDragLeave}
@@ -307,34 +337,34 @@ export function StrategyCard() {
                   draggable
                   onDragStart={(e) => handleDragStart(e, condition)}
                   onDragEnd={handleDragEnd}
-                  className={`border border-gray-300 dark:border-zinc-900 bg-white dark:bg-[#171219] p-6 hover:border-gray-400 dark:hover:border-zinc-800 transition-colors duration-200 rounded cursor-move ${
+                  className={`border border-default-200 bg-default-100 p-6 hover:border-default-300 rounded cursor-move ${
                     draggedConditionId === condition.id ? "opacity-50" : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
-                        <GripVertical className="w-3 h-3 text-gray-400 dark:text-zinc-700 transition-colors duration-200" />
+                        <GripVertical className="w-3 h-3 text-default-400" />
                         <div
-                          className={`w-1 h-1 ${getColorClass(condition.highlightColor, "bg")} transition-colors duration-200`}
+                          className={`w-1 h-1 ${getColorClass(condition.highlightColor, "bg")}`}
                         />
-                        <span className="text-xs font-mono text-gray-600 dark:text-zinc-500 tracking-wider transition-colors duration-200">
+                        <span className="text-xs font-mono text-default-500 tracking-wider">
                           BUY TRIGGER
                         </span>
                       </div>
-                      <p className="text-lg font-light text-gray-900 dark:text-white text-balance leading-relaxed transition-colors duration-200">
+                      <p className="text-lg font-light text-default-foreground text-balance leading-relaxed">
                         {condition.title}{" "}
                         <span
-                          className={`font-normal ${getColorClass(condition.highlightColor, "text")} transition-colors duration-200`}
+                          className={`font-normal ${getColorClass(condition.highlightColor, "text")}`}
                         >
                           {condition.highlightText}
                         </span>
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-zinc-600 font-light transition-colors duration-200">
+                      <p className="text-sm text-default-500 font-light">
                         {condition.description}
                       </p>
                     </div>
-                    <CheckCircle2 className="w-5 h-5 text-gray-400 dark:text-zinc-700 flex-shrink-0 transition-colors duration-200" />
+                    <CheckCircle2 className="w-5 h-5 text-default-400 flex-shrink-0" />
                   </div>
                 </div>
               ))}
@@ -344,20 +374,20 @@ export function StrategyCard() {
           {/* Add more condition */}
           {!isAddingCondition ? (
             <div
-              className="border border-dashed border-gray-300 dark:border-zinc-900 bg-white/50 dark:bg-[#171219]/50 p-6 opacity-40 hover:opacity-70 transition-all duration-200 cursor-pointer rounded"
+              className="border border-dashed border-default-200 bg-default-50 p-6 opacity-40 hover:opacity-70 transition-all duration-200 cursor-pointer rounded"
               onClick={handleAddConditionClick}
             >
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 border border-gray-400 dark:border-zinc-700 transition-colors duration-200" />
-                <p className="text-sm font-mono text-gray-600 dark:text-zinc-600 tracking-wide transition-colors duration-200">
+                <div className="w-4 h-4 border border-default-300" />
+                <p className="text-sm font-mono text-default-500 tracking-wide">
                   ADD CONDITION
                 </p>
               </div>
             </div>
           ) : (
-            <div className="border border-gray-300 dark:border-zinc-900 bg-white dark:bg-[#171219] p-6 rounded transition-colors duration-200">
+            <div className="border border-default-200 bg-default-100 p-6 rounded">
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 border border-gray-400 dark:border-zinc-700 flex-shrink-0 transition-colors duration-200" />
+                <div className="w-4 h-4 border border-default-300 flex-shrink-0" />
                 <div className="flex-1 relative">
                   <input
                     type="text"
@@ -365,13 +395,13 @@ export function StrategyCard() {
                     onChange={(e) => setNewConditionText(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Describe your condition..."
-                    className="w-full px-3 py-2 pr-10 text-sm bg-transparent border border-gray-300 dark:border-zinc-900 rounded focus:outline-none focus:border-gray-400 dark:focus:border-zinc-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-zinc-600 font-light transition-colors duration-200"
+                    className="w-full px-3 py-2 pr-10 text-sm bg-transparent border border-default-200 rounded focus:outline-none focus:border-default-300 text-default-foreground placeholder:text-default-500 font-light"
                     autoFocus
                   />
                   <button
                     onClick={handleSubmitCondition}
                     disabled={!newConditionText.trim()}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-zinc-200 text-white dark:text-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-default-foreground hover:bg-default-300 text-default-background disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-3 h-3" />
                   </button>
@@ -383,12 +413,12 @@ export function StrategyCard() {
       </div>
 
       {/* Benefits Section */}
-      <div className="p-8 bg-[#ECE9E2] dark:bg-black border-b border-gray-300 dark:border-zinc-900 transition-colors duration-200">
-        <div className="border-l-2 border-amber-500/50 pl-6">
-          <p className="text-base font-light text-gray-900 dark:text-white mb-2 transition-colors duration-200">
+      <div className="p-8 border-b border-default-200">
+        <div className="border-l-2 border-warning/50 pl-6">
+          <p className="text-base font-light text-default-foreground mb-2">
             Set it and forget it
           </p>
-          <p className="text-sm text-gray-600 dark:text-zinc-600 font-light text-balance leading-relaxed transition-colors duration-200">
+          <p className="text-sm text-default-500 font-light text-balance leading-relaxed">
             Your strategy executes 24/7. No charts, no stress, no missed
             opportunities.
           </p>
@@ -396,14 +426,14 @@ export function StrategyCard() {
       </div>
 
       {/* CTA Section */}
-      <div className="p-8 bg-[#ECE9E2] dark:bg-black transition-colors duration-200">
+      <div className="p-8">
         <Button
           size="lg"
-          className="w-full bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-zinc-200 text-white dark:text-black font-light tracking-wide text-base transition-colors duration-200 h-14"
+          className="w-full font-light tracking-wide text-base h-14"
         >
           ACTIVATE STRATEGY
         </Button>
-        <p className="text-center text-xs text-gray-600 dark:text-zinc-700 font-mono mt-4 tracking-wide transition-colors duration-200">
+        <p className="text-center text-xs text-default-500 font-mono mt-4 tracking-wide">
           2 SECONDS • CANCEL ANYTIME
         </p>
       </div>

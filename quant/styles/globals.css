@@ -45,3 +45,19 @@
 .dark .chat-scrollbar {
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
+
+/* Smooth loading ellipsis animation */
+@keyframes loading-wave {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+.loading-dot {
+  animation: loading-wave 1.4s ease-in-out infinite;
+}

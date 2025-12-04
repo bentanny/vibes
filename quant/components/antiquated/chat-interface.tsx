@@ -86,8 +86,8 @@ export function ChatInterface({
           showChart
             ? "w-full h-full p-6"
             : !showCard
-              ? "w-full max-w-3xl h-auto p-4 md:p-8 bg-transparent shadow-none border-none overflow-visible"
-              : "w-full max-w-3xl h-[82vh] max-h-[820px] p-6 shadow-2xl border-gray-300 dark:border-zinc-900 bg-[#ECE9E2] dark:bg-black"
+              ? "w-full max-w-4xl h-auto p-4 md:p-8 bg-transparent shadow-none border-none overflow-visible"
+              : "w-full max-w-4xl h-[82vh] max-h-[820px] p-6 shadow-2xl bg-default-100 dark:bg-zinc-900"
         }
       `}
     >

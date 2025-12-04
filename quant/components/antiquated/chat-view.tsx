@@ -1,11 +1,10 @@
 "use client";
 
-import { useTheme } from "next-themes";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "@heroui/button";
 import { Send, TrendingUp, Sparkles, BarChart3 } from "lucide-react";
-import { AutomateStrategyModal } from "./automate-strategy-modal";
+import { AutomateStrategyModal } from "../automate-strategy-modal";
 import { StrategyCard } from "./strategy-card";
 import type { ChartMode, StrategyType, ChatMessage } from "@/types";
 
@@ -40,16 +39,7 @@ export function ChatView({
   onShowChart,
   showChart = false,
 }: ChatViewProps) {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [isAutomateModalOpen, setIsAutomateModalOpen] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const buttonColor = mounted && theme === "dark" ? "#2a2a2a" : "#E0DACF";
-  const buttonTextColor = mounted && theme === "dark" ? "#ffffff" : undefined;
 
   // Detect if "dev" is typed in the message
   const isDevMode = useMemo(() => {
@@ -163,11 +153,11 @@ export function ChatView({
         className={`mb-4 md:mb-6 flex-1 overflow-y-auto ${!hasMessages ? "flex flex-col justify-center items-center" : "space-y-3 md:space-y-4"}`}
       >
         {!hasMessages ? (
-          <div className="text-center px-4">
-            <h1 className="mb-2 md:mb-3 text-2xl md:text-4xl font-semibold tracking-tight text-balance">
+          <div className="text-left px-4">
+            <h1 className="mb-3 md:mb-4 text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-balance transition-colors duration-300">
               Your strategy, running 24/7
             </h1>
-            <p className="text-default-500 text-sm md:text-lg">
+            <p className="text-default-500 text-lg md:text-xl lg:text-2xl transition-colors duration-300 max-w-2xl">
               Build trading strategies that buy and sell for you, so you don't
               have to
             </p>
@@ -195,13 +185,13 @@ export function ChatView({
                   /* Text Message - Renders as a simple chat bubble */
                   isTextMessage && (
                     <div
-                      className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-3 py-2 md:px-4 md:py-3 transition-colors duration-200 ${
+                      className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-4 ${
                         msg.role === "user"
-                          ? "bg-gray-700 dark:bg-[#171219] text-white dark:text-white"
-                          : "bg-white dark:bg-[#171219] text-gray-900 dark:text-white border border-gray-300 dark:border-zinc-900"
+                          ? "bg-default-200 text-default-foreground"
+                          : "bg-default-100 dark:bg-zinc-900 text-default-foreground"
                       }`}
                     >
-                      <p className="text-xs md:text-sm leading-relaxed">
+                      <p className="text-sm md:text-base leading-relaxed">
                         {msg.content}
                       </p>
                     </div>
@@ -226,11 +216,6 @@ export function ChatView({
                 size="sm"
                 radius="full"
                 className="text-xs md:text-sm whitespace-nowrap"
-                style={{
-                  backgroundColor:
-                    mounted && theme === "dark" ? "#1a1a1a" : "#f5f5f5",
-                  color: mounted && theme === "dark" ? "#999" : "#666",
-                }}
               >
                 {mode.label}
               </Button>
@@ -249,11 +234,6 @@ export function ChatView({
                 size="sm"
                 radius="full"
                 className="text-xs md:text-sm whitespace-nowrap"
-                style={{
-                  backgroundColor:
-                    mounted && theme === "dark" ? "#1a1a1a" : "#f5f5f5",
-                  color: mounted && theme === "dark" ? "#999" : "#666",
-                }}
               >
                 {strategy.label}
               </Button>
@@ -267,7 +247,7 @@ export function ChatView({
           onKeyDown={onKeyDown}
           placeholder="Describe the strategy you want to automate..."
           rows={3}
-          className="w-full min-h-[100px] md:min-h-[120px] px-3 py-2 pr-12 text-sm md:text-base bg-white dark:bg-[#171219] border border-gray-300 dark:border-zinc-900 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-zinc-800 focus:border-transparent resize-none text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-zinc-500 transition-colors duration-200"
+          className="w-full min-h-[100px] md:min-h-[120px] px-4 py-3 pr-12 text-base md:text-lg bg-default-100 dark:bg-zinc-900 border border-default-200 rounded-2xl focus:outline-none focus:ring-1 focus:ring-default-300 focus:border-transparent resize-none text-default-foreground placeholder:text-default-500"
         />
         <Button
           onPress={onSubmit}
@@ -276,7 +256,6 @@ export function ChatView({
           size="sm"
           radius="full"
           className="absolute bottom-3 right-3"
-          style={{ backgroundColor: buttonColor }}
         >
           <Send className="h-3 w-3 md:h-4 md:w-4" />
         </Button>
@@ -285,38 +264,30 @@ export function ChatView({
       {/* Footer / Examples */}
       <div className="mt-2 md:mt-3 space-y-2 md:space-y-3">
         {!hasMessages ? (
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-center">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-start">
             {exampleQuestions.map((question, idx) => (
               <Button
                 key={idx}
                 onPress={() => handleExampleClick(question)}
                 variant="flat"
-                size="sm"
+                size="md"
                 radius="full"
-                className="text-xs md:text-sm"
-                style={{
-                  backgroundColor: buttonColor,
-                  color: buttonTextColor,
-                }}
+                className="text-sm md:text-base"
               >
                 {question}
               </Button>
             ))}
           </div>
         ) : (
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-start gap-2">
             {shouldShowChartButton && (
               <Button
                 onPress={onShowChart}
                 variant="flat"
-                size="sm"
+                size="md"
                 radius="full"
-                className="text-xs md:text-sm"
-                style={{
-                  backgroundColor: buttonColor,
-                  color: buttonTextColor,
-                }}
-                startContent={<BarChart3 className="h-3 w-3 md:h-4 md:w-4" />}
+                className="text-sm md:text-base"
+                startContent={<BarChart3 className="h-4 w-4 md:h-5 md:w-5" />}
               >
                 See Chart
               </Button>
@@ -324,21 +295,17 @@ export function ChatView({
             <Button
               onPress={onStrategyClick}
               variant="flat"
-              size="sm"
+              size="md"
               radius="full"
-              className="text-xs md:text-sm"
-              style={{
-                backgroundColor: buttonColor,
-                color: buttonTextColor,
-              }}
-              startContent={<TrendingUp className="h-3 w-3 md:h-4 md:w-4" />}
+              className="text-sm md:text-base"
+              startContent={<TrendingUp className="h-4 w-4 md:h-5 md:w-5" />}
             >
               Automate a strategy
             </Button>
           </div>
         )}
 
-        <p className="text-center text-[10px] md:text-xs text-default-500">
+        <p className="text-left text-xs md:text-sm text-default-500">
           Press Enter to send, Shift + Enter for new line
         </p>
       </div>
