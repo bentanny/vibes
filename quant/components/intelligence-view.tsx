@@ -2,717 +2,12 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-
-// Strategy Visualizer Component
-const StrategyVisualizer = ({ type }: { type: string }) => {
-  switch (type) {
-    case "reversion":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <g stroke="#e5e7eb" strokeWidth="1">
-            <line x1="0" y1="30" x2="400" y2="30" strokeDasharray="4 4" />
-            <line x1="0" y1="130" x2="400" y2="130" strokeDasharray="4 4" />
-          </g>
-          <rect
-            x="0"
-            y="30"
-            width="400"
-            height="100"
-            fill="rgba(245, 158, 11, 0.03)"
-          />
-          <path
-            d="M 20 80 Q 60 130 100 80 T 180 80 T 260 125 T 340 35"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle
-              cx="260"
-              cy="125"
-              r="20"
-              fill="rgba(245, 158, 11, 0.1)"
-              stroke="#f59e0b"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="260" cy="125" r="4" fill="#f59e0b" />
-          </g>
-          <text
-            x="260"
-            y="160"
-            textAnchor="middle"
-            className="text-[10px] fill-amber-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Mean Reversion
-          </text>
-        </svg>
-      );
-
-    case "breakout":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <line
-            x1="0"
-            y1="60"
-            x2="400"
-            y2="60"
-            stroke="#e5e7eb"
-            strokeWidth="1"
-            strokeDasharray="4 4"
-          />
-          <path
-            d="M 50 120 L 150 60 L 220 100 L 260 60"
-            fill="none"
-            stroke="#d6d3d1"
-            strokeWidth="1.5"
-            strokeDasharray="2 2"
-          />
-          <path
-            d="M 50 120 L 150 60 L 220 100 L 260 60 L 280 60 L 300 30 L 350 10"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle
-              cx="280"
-              cy="60"
-              r="20"
-              fill="rgba(16, 185, 129, 0.1)"
-              stroke="#10b981"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="280" cy="60" r="4" fill="#10b981" />
-          </g>
-          <text
-            x="150"
-            y="50"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-400 font-sans font-medium uppercase tracking-wide"
-          >
-            Resistance
-          </text>
-          <text
-            x="280"
-            y="95"
-            textAnchor="middle"
-            className="text-[10px] fill-emerald-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Retest Entry
-          </text>
-        </svg>
-      );
-
-    case "momentum":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <path
-            d="M 40 140 C 140 135, 200 120, 240 80 L 260 80 L 350 10"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <rect
-            x="235"
-            y="70"
-            width="30"
-            height="20"
-            fill="none"
-            stroke="#d6d3d1"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-            transform="rotate(-10 250 80)"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle
-              cx="265"
-              cy="75"
-              r="20"
-              fill="rgba(59, 130, 246, 0.1)"
-              stroke="#3b82f6"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="265" cy="75" r="4" fill="#3b82f6" />
-          </g>
-          <text
-            x="265"
-            y="120"
-            textAnchor="middle"
-            className="text-[10px] fill-blue-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Momentum Flag
-          </text>
-        </svg>
-      );
-
-    case "pairs":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <line
-            x1="40"
-            y1="80"
-            x2="360"
-            y2="80"
-            stroke="#e5e7eb"
-            strokeWidth="2"
-          />
-          <path
-            d="M 40 80 Q 120 70 200 40 T 360 80"
-            fill="none"
-            stroke="#a8a29e"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 40 80 Q 120 90 200 120 T 360 80"
-            fill="none"
-            stroke="#f59e0b"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="200"
-            y1="40"
-            x2="200"
-            y2="120"
-            stroke="#f59e0b"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle cx="200" cy="80" r="4" fill="#f59e0b" />
-          </g>
-          <text
-            x="200"
-            y="20"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-400 font-sans font-medium uppercase tracking-wide"
-          >
-            Max Divergence
-          </text>
-        </svg>
-      );
-
-    case "trend_follow":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <line
-            x1="20"
-            y1="140"
-            x2="380"
-            y2="20"
-            stroke="#e5e7eb"
-            strokeWidth="1"
-            strokeDasharray="4 4"
-          />
-          <path
-            d="M 20 140 L 80 100 L 120 110 L 200 60 L 240 70 L 320 20 L 360 30"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="120" cy="110" r="3" fill="#a8a29e" />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle
-              cx="240"
-              cy="70"
-              r="20"
-              fill="rgba(16, 185, 129, 0.1)"
-              stroke="#10b981"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="240" cy="70" r="4" fill="#10b981" />
-          </g>
-          <text
-            x="120"
-            y="130"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-400 font-sans font-medium uppercase tracking-wide"
-          >
-            Higher Low
-          </text>
-          <text
-            x="240"
-            y="95"
-            textAnchor="middle"
-            className="text-[10px] fill-emerald-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Continuation
-          </text>
-        </svg>
-      );
-
-    case "squeeze":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <path
-            d="M 20 50 Q 150 70 200 75 Q 300 70 380 20"
-            fill="none"
-            stroke="#d6d3d1"
-            strokeWidth="1"
-          />
-          <path
-            d="M 20 110 Q 150 90 200 85 Q 300 90 380 140"
-            fill="none"
-            stroke="#d6d3d1"
-            strokeWidth="1"
-          />
-          <path
-            d="M 20 50 Q 150 70 200 75 Q 300 70 380 20 V 140 Q 300 90 200 85 Q 150 90 20 110 Z"
-            fill="rgba(59, 130, 246, 0.05)"
-          />
-          <path
-            d="M 20 80 L 60 90 L 100 70 L 140 85 L 180 80 L 220 82 L 260 60 L 320 30"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle
-              cx="220"
-              cy="82"
-              r="20"
-              fill="rgba(245, 158, 11, 0.1)"
-              stroke="#f59e0b"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="220" cy="82" r="4" fill="#f59e0b" />
-          </g>
-          <text
-            x="200"
-            y="105"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-500 font-bold font-sans uppercase tracking-wide"
-          >
-            Compression
-          </text>
-          <text
-            x="320"
-            y="50"
-            textAnchor="middle"
-            className="text-[10px] fill-amber-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Expansion
-          </text>
-        </svg>
-      );
-
-    case "intermarket":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <path
-            d="M 20 60 L 100 60 L 150 30 L 250 25"
-            fill="none"
-            stroke="#a8a29e"
-            strokeWidth="1.5"
-            strokeDasharray="4 2"
-          />
-          <text
-            x="150"
-            y="20"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-400 font-sans uppercase tracking-wide"
-          >
-            Yields (Lead)
-          </text>
-          <path
-            d="M 20 120 L 120 120 L 180 120 L 220 140 L 300 90"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="150"
-            y1="30"
-            x2="180"
-            y2="120"
-            stroke="#f59e0b"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle cx="180" cy="120" r="4" fill="#f59e0b" />
-          </g>
-          <text
-            x="300"
-            y="80"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-800 dark:fill-stone-200 font-bold font-sans uppercase tracking-wide"
-          >
-            Tech (Lag)
-          </text>
-          <text
-            x="165"
-            y="80"
-            textAnchor="middle"
-            transform="rotate(70 165 80)"
-            className="text-[9px] fill-amber-600 font-mono uppercase tracking-widest"
-          >
-            Correlation Trigger
-          </text>
-        </svg>
-      );
-
-    case "avwap":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <path
-            d="M 20 140 Q 100 100 200 90 T 380 60"
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth="2"
-          />
-          <path
-            d="M 20 140 L 60 110 L 100 60 L 140 40 L 180 60 L 220 92 L 280 70"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="20" cy="140" r="3" fill="#3b82f6" />
-          <text
-            x="30"
-            y="155"
-            className="text-[10px] fill-blue-500 font-bold font-sans uppercase tracking-wide"
-          >
-            Anchor
-          </text>
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle
-              cx="220"
-              cy="92"
-              r="20"
-              fill="rgba(59, 130, 246, 0.1)"
-              stroke="#3b82f6"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="220" cy="92" r="4" fill="#3b82f6" />
-          </g>
-          <text
-            x="220"
-            y="120"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-600 dark:fill-stone-300 font-bold font-sans uppercase tracking-wide"
-          >
-            Mean Reversion
-          </text>
-        </svg>
-      );
-
-    case "event":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <line
-            x1="150"
-            y1="20"
-            x2="150"
-            y2="140"
-            stroke="#ef4444"
-            strokeWidth="1"
-            strokeDasharray="4 2"
-          />
-          <text
-            x="150"
-            y="155"
-            textAnchor="middle"
-            className="text-[10px] fill-red-500 font-bold font-sans uppercase tracking-wide"
-          >
-            Catalyst
-          </text>
-          <path
-            d="M 20 100 L 80 95 L 140 100"
-            fill="none"
-            stroke="#a8a29e"
-            strokeWidth="2"
-          />
-          <path
-            d="M 160 80 L 180 40 L 220 50 L 260 30 L 320 10"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <rect
-            x="155"
-            y="40"
-            width="10"
-            height="60"
-            fill="rgba(239, 68, 68, 0.1)"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle cx="220" cy="50" r="4" fill="#10b981" />
-          </g>
-          <text
-            x="260"
-            y="70"
-            textAnchor="middle"
-            className="text-[10px] fill-emerald-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Follow Through
-          </text>
-        </svg>
-      );
-
-    case "gap":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <line
-            x1="20"
-            y1="120"
-            x2="100"
-            y2="110"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-          <circle cx="100" cy="110" r="3" fill="#57534e" />
-          <text
-            x="100"
-            y="125"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-400 font-sans uppercase tracking-wide"
-          >
-            Close
-          </text>
-          <rect
-            x="100"
-            y="60"
-            width="40"
-            height="50"
-            fill="rgba(16, 185, 129, 0.05)"
-            stroke="#10b981"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <text
-            x="120"
-            y="88"
-            textAnchor="middle"
-            className="text-[9px] fill-emerald-600 font-bold font-sans uppercase tracking-widest"
-          >
-            GAP
-          </text>
-          <path
-            d="M 140 60 L 180 50 L 220 55 L 280 20 L 340 10"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle cx="140" cy="60" r="4" fill="#10b981" />
-          </g>
-          <text
-            x="140"
-            y="45"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-800 dark:fill-stone-200 font-sans uppercase tracking-wide"
-          >
-            Open
-          </text>
-          <text
-            x="280"
-            y="40"
-            textAnchor="middle"
-            className="text-[10px] fill-stone-600 dark:fill-stone-300 font-bold font-sans uppercase tracking-wide"
-          >
-            Gap & Go
-          </text>
-        </svg>
-      );
-
-    case "liquidity":
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          {/* Support Line */}
-          <line
-            x1="20"
-            y1="110"
-            x2="380"
-            y2="110"
-            stroke="#a8a29e"
-            strokeWidth="1"
-            strokeDasharray="4 4"
-          />
-          <text
-            x="50"
-            y="100"
-            className="text-[10px] fill-stone-400 font-sans font-medium uppercase tracking-wide"
-          >
-            Key Support
-          </text>
-
-          {/* Price Action */}
-          <path
-            d="M 20 80 L 60 110 L 100 90 L 140 110 L 180 140 L 220 110 L 260 70 L 320 50"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Sweep Zone */}
-          <circle
-            cx="180"
-            cy="140"
-            r="15"
-            fill="rgba(239, 68, 68, 0.1)"
-            stroke="#ef4444"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <text
-            x="180"
-            y="160"
-            textAnchor="middle"
-            className="text-[10px] fill-red-500 font-bold font-sans uppercase tracking-wide"
-          >
-            Stop Hunt
-          </text>
-
-          {/* Reclaim */}
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle cx="220" cy="110" r="4" fill="#10b981" />
-          </g>
-          <text
-            x="240"
-            y="100"
-            textAnchor="middle"
-            className="text-[10px] fill-emerald-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Reclaim
-          </text>
-        </svg>
-      );
-
-    case "pullback":
-    default:
-      return (
-        <svg
-          viewBox="0 0 400 160"
-          className="w-full h-full overflow-visible z-10"
-        >
-          <line
-            x1="50"
-            y1="140"
-            x2="350"
-            y2="20"
-            stroke="#e5e7eb"
-            strokeWidth="2"
-            strokeDasharray="4 4"
-          />
-          <path
-            d="M 50 140 C 80 120, 100 110, 130 90 S 150 70, 170 100 C 180 115, 190 115, 210 80 S 300 40, 350 20"
-            fill="none"
-            stroke="#57534e"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <g className="animate-[pulse_3s_ease-in-out_infinite]">
-            <circle
-              cx="178"
-              cy="105"
-              r="20"
-              fill="rgba(245, 158, 11, 0.1)"
-              stroke="#f59e0b"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
-            <circle cx="178" cy="105" r="4" fill="#f59e0b" />
-          </g>
-          <text
-            x="90"
-            y="85"
-            className="text-[10px] fill-stone-400 font-sans font-medium uppercase tracking-wide"
-          >
-            Impulse
-          </text>
-          <text
-            x="178"
-            y="145"
-            textAnchor="middle"
-            className="text-[10px] fill-amber-600 font-bold font-sans uppercase tracking-wide"
-          >
-            Correction Entry
-          </text>
-          <line
-            x1="178"
-            y1="125"
-            x2="178"
-            y2="135"
-            stroke="#f59e0b"
-            strokeWidth="1"
-          />
-          <text
-            x="280"
-            y="45"
-            className="text-[10px] fill-stone-400 font-sans font-medium uppercase tracking-wide"
-          >
-            Continuation
-          </text>
-        </svg>
-      );
-  }
-};
+import { StrategyVisualizer } from "./archetype-visualizations";
+import type { TradingArchetype } from "@/types";
 
 // Strategy Card Component
 interface StrategyCardProps {
-  type: string;
+  type: TradingArchetype; // Ensure exact type match
   title: string;
   description: string;
   color: "amber" | "emerald" | "blue" | "red";
@@ -771,9 +66,16 @@ const StrategyCard = ({
               : "Mean Reversion"}
       </div>
 
-      {/* Visualization */}
+      {/* Visualization with Animation Trigger */}
       <div className="h-32 mb-6 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
-        <StrategyVisualizer type={type} />
+        {/* We wrap StrategyVisualizer in a motion.div that sets the 'animate' state based on hover */}
+        <motion.div
+          className="w-full h-full"
+          initial="static"
+          whileHover="active"
+        >
+          <StrategyVisualizer type={type} variant="light" />
+        </motion.div>
       </div>
 
       {/* Content */}
@@ -795,100 +97,332 @@ const StrategyCard = ({
 // Strategy data
 const strategies: StrategyCardProps[] = [
   {
-    type: "pullback",
-    title: "Trend Pullback",
+    type: "execution.dca",
+    title: "Recurring Investment",
     description:
-      "Enter during temporary corrections within a strong trend, buying dips at key support levels.",
-    color: "amber",
+      "Automate steady accumulation by buying a fixed dollar amount at regular intervals.",
+    color: "blue",
     index: 0,
   },
   {
-    type: "reversion",
-    title: "Mean Reversion",
+    type: "execution.dca_sell",
+    title: "Recurring Divestment",
     description:
-      "Capitalize on price extremes that tend to return to their statistical average over time.",
-    color: "amber",
+      "Automate steady distribution by selling a fixed dollar amount at regular intervals.",
+    color: "red",
     index: 1,
   },
   {
-    type: "breakout",
-    title: "Breakout Retest",
+    type: "execution.time_window",
+    title: "Time-Based Execution",
     description:
-      "Enter when price breaks resistance, pulls back to retest, and confirms the new support level.",
-    color: "emerald",
+      "Restrict trading to specific market hours to capitalize on peak liquidity periods.",
+    color: "blue",
     index: 2,
   },
   {
-    type: "momentum",
-    title: "Momentum Flag",
+    type: "execution.scheduled",
+    title: "Scheduled Execution",
     description:
-      "Identify consolidation patterns during strong moves that signal continuation of the trend.",
+      "Execute trades at specific recurring times, such as every Monday at 9am or the 1st of each month.",
     color: "blue",
     index: 3,
   },
   {
-    type: "pairs",
-    title: "Pairs Trading",
+    type: "signal.percent_dip",
+    title: "Dip Buying",
     description:
-      "Trade the spread between correlated assets when they diverge beyond historical norms.",
+      "Enter positions when asset price drops by a defined percentage from local highs.",
     color: "amber",
     index: 4,
   },
   {
-    type: "trend_follow",
-    title: "Trend Following",
+    type: "signal.percent_spike",
+    title: "Spike Selling",
     description:
-      "Ride extended directional moves by entering on higher lows and exiting on trend breaks.",
+      "Exit positions when asset price spikes by a defined percentage from local lows.",
     color: "emerald",
     index: 5,
   },
   {
-    type: "squeeze",
-    title: "Volatility Squeeze",
+    type: "signal.price_limit",
+    title: "Limit Orders",
     description:
-      "Enter when Bollinger Bands contract, anticipating an explosive expansion move.",
-    color: "amber",
+      "Execute trades only when price touches a specific psychological or technical level.",
+    color: "emerald",
     index: 6,
   },
   {
-    type: "intermarket",
-    title: "Intermarket Analysis",
+    type: "signal.price_limit_sell",
+    title: "Limit Order (Sell)",
     description:
-      "Trade assets based on leading relationships with bonds, currencies, or commodities.",
-    color: "blue",
+      "Execute sell trades when price rises to touch a specific resistance or technical level.",
+    color: "red",
     index: 7,
   },
   {
-    type: "avwap",
-    title: "Anchored VWAP",
+    type: "signal.metric_spike",
+    title: "Volume Spike",
     description:
-      "Use volume-weighted average price from key events as dynamic support and resistance.",
-    color: "blue",
+      "Trigger entries when volume or volatility metrics exceed their standard deviation.",
+    color: "red",
     index: 8,
   },
   {
-    type: "event",
-    title: "Event-Driven",
+    type: "signal.metric_spike_down",
+    title: "Volume Spike (Bearish)",
     description:
-      "Position around earnings, catalysts, or news events that create volatility opportunities.",
+      "Trigger entries when volume spikes during a price decline, signaling distribution.",
     color: "red",
     index: 9,
   },
   {
-    type: "gap",
+    type: "signal.metric_dip_up",
+    title: "Volume Dip (Bullish)",
+    description:
+      "Trade when volume contracts during a price increase, signaling accumulation.",
+    color: "blue",
+    index: 10,
+  },
+  {
+    type: "signal.metric_dip_down",
+    title: "Volume Dip (Bearish)",
+    description:
+      "Trade when both volume and price decline, signaling distribution.",
+    color: "red",
+    index: 11,
+  },
+  {
+    type: "signal.supertrend",
+    title: "Trend Filtering",
+    description:
+      "Stay in trades only while the Supertrend indicator confirms the directional bias.",
+    color: "emerald",
+    index: 12,
+  },
+  {
+    type: "manage.trailing_stop",
+    title: "Trailing Stop",
+    description:
+      "Protect gains by automatically adjusting stop-loss levels as price moves in your favor.",
+    color: "red",
+    index: 13,
+  },
+  {
+    type: "manage.trailing_limit_buy",
+    title: "Trailing Limit Buy",
+    description:
+      "Enter positions when price breaks above a trailing resistance level.",
+    color: "emerald",
+    index: 15,
+  },
+  {
+    type: "manage.trailing_buy",
+    title: "Trailing Buy",
+    description:
+      "Enter positions when price breaks above a trailing resistance level.",
+    color: "emerald",
+    index: 14,
+  },
+  {
+    type: "signal.trailing_limit_sell",
+    title: "Trailing Limit Sell",
+    description:
+      "Trigger sells when price breaks above a trailing resistance level.",
+    color: "red",
+    index: 38,
+  },
+  {
+    type: "manage.profit_scaling",
+    title: "Profit Scaling",
+    description:
+      "Systematically exit portions of your position at pre-defined profit targets.",
+    color: "amber",
+    index: 14,
+  },
+  {
+    type: "signal.trend_pullback",
+    title: "Trend Pullback",
+    description:
+      "Enter during temporary corrections within a strong trend, buying dips at key support levels.",
+    color: "amber",
+    index: 15,
+  },
+  {
+    type: "signal.trend_pullback_sell",
+    title: "Trend Pullback Sell",
+    description:
+      "Exit during temporary rallies within a strong downtrend, selling bounces at key resistance levels.",
+    color: "red",
+    index: 16,
+  },
+  {
+    type: "signal.range_mean_reversion",
+    title: "Mean Reversion",
+    description:
+      "Capitalize on price extremes that tend to return to their statistical average over time.",
+    color: "amber",
+    index: 17,
+  },
+  {
+    type: "signal.range_mean_reversion_sell",
+    title: "Mean Reversion Sell",
+    description:
+      "Capitalize on price extremes at the upper band that tend to return to their statistical average.",
+    color: "red",
+    index: 18,
+  },
+  {
+    type: "signal.breakout_retest",
+    title: "Breakout Retest",
+    description:
+      "Enter when price breaks resistance, pulls back to retest, and confirms the new support level.",
+    color: "emerald",
+    index: 19,
+  },
+  {
+    type: "signal.breakout_retest_sell",
+    title: "Breakdown Retest",
+    description:
+      "Exit when price breaks support, pulls back to retest, and confirms the new resistance level.",
+    color: "red",
+    index: 20,
+  },
+  {
+    type: "signal.xs_momentum",
+    title: "Momentum Flag",
+    description:
+      "Identify consolidation patterns during strong moves that signal continuation of the trend.",
+    color: "blue",
+    index: 21,
+  },
+  {
+    type: "signal.xs_momentum_sell",
+    title: "Momentum Flag Sell",
+    description:
+      "Identify consolidation patterns during strong downward moves that signal continuation of the decline.",
+    color: "red",
+    index: 22,
+  },
+  {
+    type: "signal.pairs_relative_value",
+    title: "Pairs Trading",
+    description:
+      "Trade the spread between correlated assets when they diverge beyond historical norms.",
+    color: "amber",
+    index: 23,
+  },
+  {
+    type: "signal.pairs_relative_value_sell",
+    title: "Pairs Trading Sell",
+    description:
+      "Trade the spread by selling the outperforming asset when pairs diverge beyond historical norms.",
+    color: "red",
+    index: 24,
+  },
+  {
+    type: "signal.breakout_trendfollow",
+    title: "Trend Following",
+    description:
+      "Ride extended directional moves by entering on higher lows and exiting on trend breaks.",
+    color: "emerald",
+    index: 25,
+  },
+  {
+    type: "signal.breakout_trendfollow_sell",
+    title: "Trend Following Sell",
+    description:
+      "Ride extended downward moves by entering on lower highs and exiting on trend breaks.",
+    color: "red",
+    index: 26,
+  },
+  {
+    type: "signal.squeeze_expansion",
+    title: "Volatility Squeeze",
+    description:
+      "Enter when Bollinger Bands contract, anticipating an explosive expansion move.",
+    color: "amber",
+    index: 27,
+  },
+  {
+    type: "signal.squeeze_expansion_sell",
+    title: "Volatility Squeeze Sell",
+    description:
+      "Enter when Bollinger Bands contract, anticipating an explosive downward expansion move.",
+    color: "red",
+    index: 28,
+  },
+  {
+    type: "signal.intermarket_trigger",
+    title: "Intermarket Analysis",
+    description:
+      "Trade assets based on leading relationships with bonds, currencies, or commodities.",
+    color: "blue",
+    index: 29,
+  },
+  {
+    type: "signal.intermarket_trigger_sell",
+    title: "Intermarket Analysis Sell",
+    description:
+      "Trade assets based on leading relationships with bonds, currencies, or commodities signaling downside.",
+    color: "red",
+    index: 30,
+  },
+  {
+    type: "signal.avwap_reversion",
+    title: "Anchored VWAP",
+    description:
+      "Use volume-weighted average price from key events as dynamic support and resistance.",
+    color: "blue",
+    index: 31,
+  },
+  {
+    type: "signal.avwap_reversion_sell",
+    title: "Anchored VWAP Sell",
+    description:
+      "Use volume-weighted average price from key events as dynamic resistance for short entries.",
+    color: "red",
+    index: 32,
+  },
+  {
+    type: "signal.event_followthrough",
+    title: "Event-Driven",
+    description:
+      "Position around earnings, catalysts, or news events that create volatility opportunities.",
+    color: "red",
+    index: 33,
+  },
+  {
+    type: "signal.event_followthrough_sell",
+    title: "Event-Driven Sell",
+    description:
+      "Position around earnings, catalysts, or news events that create downward volatility opportunities.",
+    color: "red",
+    index: 34,
+  },
+  {
+    type: "signal.gap_play",
     title: "Gap Trading",
     description:
       "Trade opening gaps that show strong continuation momentum with follow-through volume.",
     color: "emerald",
-    index: 10,
+    index: 35,
   },
   {
-    type: "liquidity",
+    type: "signal.gap_play_sell",
+    title: "Gap Trading Sell",
+    description:
+      "Trade opening gaps down that show strong continuation momentum with follow-through volume.",
+    color: "red",
+    index: 36,
+  },
+  {
+    type: "signal.liquidity_sweep",
     title: "Liquidity Sweep",
     description:
       "Enter after stop hunts clear weak hands below support, then reclaim the key level.",
     color: "red",
-    index: 11,
+    index: 37,
   },
 ];
 
@@ -943,7 +477,7 @@ export const IntelligenceView = ({ imgSrc }: { imgSrc: string }) => {
             Trading <span className="italic text-amber-100">Archetypes</span>
           </h2>
           <p className="mt-6 text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">
-            Twelve fundamental patterns that power algorithmic trading
+            Twenty-one fundamental patterns that power algorithmic trading
             strategies. Select a pattern to deploy with our AI execution engine.
           </p>
           <div className="w-24 h-[1px] bg-white/30 mx-auto mt-8" />

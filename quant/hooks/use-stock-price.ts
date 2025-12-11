@@ -72,7 +72,6 @@ export function useStockPrice(symbol: string): StockQuote {
       }
       // Also set initial price from REST if available
       if (data.c) {
-        console.log(`[useStockPrice] ✅ Got price for ${sym}: $${data.c} (${((data.c - data.pc) / data.pc * 100).toFixed(2)}%)`);
         setQuote((prev) => ({
           ...prev,
           price: data.c,
@@ -81,22 +80,15 @@ export function useStockPrice(symbol: string): StockQuote {
           changePercent: ((data.c - data.pc) / data.pc) * 100,
           isLoading: false,
         }));
-      } else {
-        console.warn(`[useStockPrice] ⚠️ No price data returned for ${sym}:`, data);
       }
     } catch (err) {
-      console.error("[useStockPrice] ❌ Failed to fetch quote:", err);
     }
   }, []);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
 
-    console.log(`[useStockPrice] Initializing for symbol: ${symbol}`);
-    console.log(`[useStockPrice] API Key configured: ${apiKey ? "Yes" : "NO - Add NEXT_PUBLIC_FINNHUB_API_KEY to .env.local"}`);
-
     if (!apiKey) {
-      console.error("[useStockPrice] ❌ Missing NEXT_PUBLIC_FINNHUB_API_KEY in .env.local");
       setQuote((prev) => ({
         ...prev,
         isLoading: false,
@@ -125,7 +117,6 @@ export function useStockPrice(symbol: string): StockQuote {
         socketRef.current = socket;
 
         socket.onopen = () => {
-          console.log(`[Finnhub] Connected, subscribing to ${upperSymbol}`);
           socket.send(JSON.stringify({ type: "subscribe", symbol: upperSymbol }));
           setQuote((prev) => ({ ...prev, isConnected: true, error: null }));
         };
@@ -156,23 +147,29 @@ export function useStockPrice(symbol: string): StockQuote {
               }
             }
           } catch (err) {
-            console.error("[Finnhub] Failed to parse message:", err);
+            // Error parsing message
           }
         };
 
         socket.onerror = () => {
           // WebSocket errors are often due to network issues or invalid tokens
           // Don't overwrite price data - REST API fallback still works
-          console.warn("[Finnhub] ⚠️ WebSocket error - falling back to REST API polling");
           wsFailedRef.current = true;
           setQuote((prev) => ({
             ...prev,
             isConnected: false,
           }));
+
+          // Close socket immediately to trigger onclose and avoid hanging state
+          // safe to close even if already closing/closed
+          try {
+             if (socketRef.current) socketRef.current.close(4000); // 4000 = custom/app specific error indicating we gave up
+          } catch (e) {
+             // ignore
+          }
           
           // Start polling fallback if not already polling
           if (!pollingIntervalRef.current) {
-            console.log("[Finnhub] 🔄 Starting REST API polling (every 15s)");
             pollingIntervalRef.current = setInterval(() => {
               fetchPreviousClose(upperSymbol);
             }, 15000); // Poll every 15 seconds (free tier friendly)
@@ -191,19 +188,23 @@ export function useStockPrice(symbol: string): StockQuote {
             4000: "Invalid API key",
             4001: "Rate limit exceeded",
           };
-          console.log(`[Finnhub] Disconnected: ${closeReasons[event.code] || `Code ${event.code}`}`);
           setQuote((prev) => ({ ...prev, isConnected: false }));
 
           // Reconnect after 5 seconds if not intentionally closed
-          if (event.code !== 1000) {
+          // Don't reconnect on fatal errors (4xxx) or policy violations
+          // Also check wsFailedRef to prevent reconnect loops after error
+          if (
+            event.code !== 1000 &&
+            event.code !== 1008 &&
+            event.code < 4000 &&
+            !wsFailedRef.current
+          ) {
             reconnectTimeoutRef.current = setTimeout(() => {
-              console.log("[Finnhub] Attempting reconnect...");
               connect();
             }, 5000);
           }
         };
       } catch (err) {
-        console.error("[Finnhub] Failed to connect:", err);
         setQuote((prev) => ({
           ...prev,
           isLoading: false,
@@ -295,7 +296,7 @@ export function useMultipleStockPrices(
               }));
             }
           } catch (err) {
-            console.error(`Failed to fetch quote for ${sym}:`, err);
+            // Error fetching quote
           }
         })
       );
@@ -354,7 +355,7 @@ export function useMultipleStockPrices(
           }
         }
       } catch (err) {
-        console.error("[Finnhub] Parse error:", err);
+        // Parse error
       }
     };
 

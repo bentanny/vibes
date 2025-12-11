@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/avatar";
 import { Logo } from "@/components/icons";
+import { GalleryVerticalEnd } from "lucide-react";
 
 export function PageNavbar() {
   const pathname = usePathname();
@@ -32,7 +33,8 @@ export function PageNavbar() {
   // Hide navbar when dashboard is visible or on settings page
   if (
     (currentView === "dashboard" && pathname === "/") ||
-    pathname === "/settings"
+    pathname === "/settings" ||
+    pathname === "/portfolio"
   ) {
     return null;
   }
@@ -56,6 +58,44 @@ export function PageNavbar() {
     );
   };
 
+  function PortfolioButton({
+    router,
+  }: {
+    router: ReturnType<typeof useRouter>;
+  }) {
+    const [isHovered, setIsHovered] = useState(false);
+
+    return (
+      <div
+        className={`relative flex items-center cursor-pointer ${isHovered ? "mix-blend-normal" : "mix-blend-difference"}`}
+        onClick={() => router.push("/portfolio")}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="flex items-center overflow-hidden">
+          <span
+            className={`text-xs font-medium uppercase tracking-wider whitespace-nowrap transition-all duration-300 ease-out ${
+              isHovered
+                ? "max-w-[120px] opacity-100 mr-2 text-black"
+                : "max-w-0 opacity-0 text-white/80"
+            }`}
+          >
+            Portfolio
+          </span>
+        </div>
+        <div
+          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 border ${
+            isHovered
+              ? "bg-white/95 text-black border-transparent rotate-90"
+              : "bg-transparent border-white/30 text-white/80"
+          }`}
+        >
+          <GalleryVerticalEnd size={14} className="transition-colors" />
+        </div>
+      </div>
+    );
+  }
+
   const navItems = [
     { name: "Blog", href: "#", onClick: undefined },
     { name: "Intelligence", href: "#", onClick: handleIntelligenceClick },
@@ -63,8 +103,8 @@ export function PageNavbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-full p-8 grid grid-cols-3 items-center z-50 text-white/90 mix-blend-difference pointer-events-none">
-      <div className="pointer-events-auto">
+    <nav className="fixed top-0 left-0 w-full p-8 grid grid-cols-3 items-center z-50 text-white/90 pointer-events-none">
+      <div className="pointer-events-auto mix-blend-difference">
         <a
           href="/"
           onClick={handleLogoClick}
@@ -77,7 +117,7 @@ export function PageNavbar() {
         </a>
       </div>
 
-      <div className="hidden md:flex gap-8 text-xs tracking-[0.2em] uppercase font-medium pointer-events-auto justify-center">
+      <div className="hidden md:flex gap-8 text-xs tracking-[0.2em] uppercase font-medium pointer-events-auto justify-center mix-blend-difference">
         {navItems.map((item) => {
           const isActive =
             (item.name === "Blog" && currentView === "blog") ||
@@ -101,31 +141,34 @@ export function PageNavbar() {
         })}
       </div>
 
-      <div className="pointer-events-auto flex justify-end">
+      <div className="pointer-events-auto flex justify-end items-center gap-3">
         {status === "authenticated" && session?.user ? (
-          <button
-            onClick={() => router.push("/settings")}
-            className="flex items-center gap-3 px-3 py-1.5 border border-white/30 rounded-full hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 group"
-          >
-            <Avatar
-              src={session.user.image || undefined}
-              name={session.user.name || "User"}
-              size="sm"
-              className="w-8 h-8 border border-white/30 group-hover:border-black/30"
-              showFallback
-              fallback={
-                <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-xs font-semibold">
-                  {session.user.name?.[0]?.toUpperCase() || "U"}
-                </div>
-              }
-            />
-            <span className="text-xs uppercase tracking-widest text-white/80 group-hover:text-black transition-colors">
-              Profile
-            </span>
-          </button>
+          <>
+            <PortfolioButton router={router} />
+            <button
+              onClick={() => router.push("/settings")}
+              className="flex items-center gap-3 px-3 py-1.5 border border-white/30 rounded-full hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 group mix-blend-difference"
+            >
+              <Avatar
+                src={session.user.image || undefined}
+                name={session.user.name || "User"}
+                size="sm"
+                className="w-8 h-8 border border-white/30 group-hover:border-black/30"
+                showFallback
+                fallback={
+                  <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-xs font-semibold">
+                    {session.user.name?.[0]?.toUpperCase() || "U"}
+                  </div>
+                }
+              />
+              <span className="text-xs uppercase tracking-widest text-white/80 group-hover:text-black transition-colors">
+                Profile
+              </span>
+            </button>
+          </>
         ) : (
           <Button
-            className="px-6 py-2 border border-white/30 rounded-full text-xs uppercase tracking-widest text-white hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 bg-transparent"
+            className="px-6 py-2 border border-white/30 rounded-full text-xs uppercase tracking-widest text-white hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 bg-transparent mix-blend-difference"
             variant="bordered"
             radius="full"
           >

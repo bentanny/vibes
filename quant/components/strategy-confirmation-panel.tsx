@@ -4,10 +4,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { Card } from "@heroui/card";
 import { Button } from "@heroui/button";
-import { Slider } from "@heroui/slider";
 import { Input } from "@heroui/input";
 import { Divider } from "@heroui/divider";
 import { Checkbox } from "@heroui/checkbox";
+import { Switch } from "@heroui/switch";
 import { Spinner } from "@heroui/spinner";
 import {
   ArrowLeft,
@@ -30,11 +30,15 @@ import {
   Check,
   AlertCircle,
   CandlestickChart,
+  Landmark,
+  X,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/icons";
 import { useSnapTrade } from "@/hooks/use-snaptrade";
 import { useCoinbase } from "@/hooks/use-coinbase";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
+import NextSteps from "@/components/next-steps";
 
 // Broker types match SnapTrade slugs
 type BrokerType = "robinhood" | "webull" | "coinbase";
@@ -46,6 +50,7 @@ type PanelState =
   | "authenticating"
   | "connected";
 type TradingMode = "paper" | "real" | null;
+type TradeType = "recurring" | "one-time";
 
 interface StrategyConfirmationPanelProps {
   onConnectionComplete?: (broker: BrokerType) => void;
@@ -57,6 +62,7 @@ interface StrategyConfirmationPanelProps {
   }) => void;
   ticker?: string;
   strategyName?: string;
+  tradeType?: TradeType;
 }
 
 // Storage key for persisting confirmation panel state
@@ -68,6 +74,9 @@ interface PanelPersistedState {
   tradingMode: TradingMode;
   positionSize: number;
   ticker: string;
+  tradeType: TradeType;
+  capEnabled: boolean;
+  capAmount: number;
 }
 
 function getPanelStorageKey(ticker: string) {
@@ -138,6 +147,7 @@ export function StrategyConfirmationPanel({
   onTradeExecuted,
   ticker = "AAPL",
   strategyName = "Trend Pullback",
+  tradeType = "recurring",
 }: StrategyConfirmationPanelProps) {
   const { data: session } = useSession();
 
@@ -245,10 +255,24 @@ export function StrategyConfirmationPanel({
   });
   const [positionSize, setPositionSize] = useState<number>(() => {
     if (persistedState.current?.ticker === ticker) {
-      return persistedState.current.positionSize ?? 500;
+      return persistedState.current.positionSize ?? 0;
     }
-    return 500;
+    return 0;
   });
+  const [capEnabled, setCapEnabled] = useState<boolean>(() => {
+    if (persistedState.current?.ticker === ticker) {
+      return persistedState.current.capEnabled ?? false;
+    }
+    return false;
+  });
+  const [capAmount, setCapAmount] = useState<number>(() => {
+    if (persistedState.current?.ticker === ticker) {
+      return persistedState.current.capAmount ?? 0;
+    }
+    return 0;
+  });
+  const [isPositionSizeFocused, setIsPositionSizeFocused] = useState(false);
+  const [positionSizeInput, setPositionSizeInput] = useState<string>("");
   const [isExecutingTrade, setIsExecutingTrade] = useState(false);
   const [tradeResult, setTradeResult] = useState<{
     success: boolean;
@@ -256,6 +280,9 @@ export function StrategyConfirmationPanel({
     error?: string;
   } | null>(null);
   const [cameFromConnected, setCameFromConnected] = useState(false);
+  const [confirmationMode, setConfirmationMode] = useState<
+    "paper" | "real" | null
+  >(null);
 
   // Sign-in form state
   const [email, setEmail] = useState("");
@@ -284,8 +311,20 @@ export function StrategyConfirmationPanel({
       tradingMode,
       positionSize,
       ticker,
+      tradeType,
+      capEnabled,
+      capAmount,
     });
-  }, [panelState, selectedBroker, tradingMode, positionSize, ticker]);
+  }, [
+    panelState,
+    selectedBroker,
+    tradingMode,
+    positionSize,
+    ticker,
+    tradeType,
+    capEnabled,
+    capAmount,
+  ]);
 
   // Check URL params for connection callback
   useEffect(() => {
@@ -293,7 +332,8 @@ export function StrategyConfirmationPanel({
     if (params.get("snaptrade") === "connected") {
       // User just came back from SnapTrade connection
       checkConnection();
-      setPanelState("connected");
+      setPanelState("confirm");
+      setConfirmationMode("real");
       // Clean up URL
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -307,7 +347,8 @@ export function StrategyConfirmationPanel({
       selectedBroker &&
       isBrokerConnected(selectedBroker)
     ) {
-      setPanelState("connected");
+      setPanelState("confirm");
+      setConfirmationMode("real");
     }
   }, [
     panelState,
@@ -323,7 +364,8 @@ export function StrategyConfirmationPanel({
 
     // Only go to connected state if THIS SPECIFIC broker is connected
     if (isBrokerConnected(broker)) {
-      setPanelState("connected");
+      setPanelState("confirm");
+      setConfirmationMode("real");
     } else {
       setPanelState("connect");
     }
@@ -398,6 +440,11 @@ export function StrategyConfirmationPanel({
     setSignInError(null);
     setTradeResult(null);
 
+    if (panelState === "confirm" && confirmationMode) {
+      setConfirmationMode(null);
+      return;
+    }
+
     if (panelState === "connect") {
       setPanelState("select-broker");
       setSelectedBroker(null);
@@ -407,24 +454,32 @@ export function StrategyConfirmationPanel({
         const connectedBroker = getConnectedBroker();
         if (connectedBroker) {
           setSelectedBroker(connectedBroker);
-          setPanelState("connected");
+          setPanelState("confirm");
+          setConfirmationMode("real");
           setCameFromConnected(false);
           return;
         }
       }
       if (tradingMode === "real") {
         setPanelState("confirm");
+        setConfirmationMode("real");
       } else {
         setPanelState("sign-in");
       }
       setTradingMode(null);
     } else if (panelState === "sign-in") {
       setPanelState("confirm");
+      setConfirmationMode(null); // Reset mode when going back to confirm
       setTradingMode(null);
     }
   };
 
-  const handleRealTrading = () => {
+  const handleRealTrading = async () => {
+    if (confirmationMode !== "real") {
+      setConfirmationMode("real");
+      return;
+    }
+
     setTradingMode("real");
     // Use actual session state instead of prop
     if (!session) {
@@ -434,7 +489,7 @@ export function StrategyConfirmationPanel({
       const connectedBroker = getConnectedBroker();
       if (connectedBroker) {
         setSelectedBroker(connectedBroker);
-        setPanelState("connected");
+        await handleExecuteTrade("buy");
       } else {
         setPanelState("select-broker");
       }
@@ -442,6 +497,11 @@ export function StrategyConfirmationPanel({
   };
 
   const handlePaperTrading = () => {
+    if (confirmationMode !== "paper") {
+      setConfirmationMode("paper");
+      return;
+    }
+
     setTradingMode("paper");
     // Use actual session state instead of prop
     if (!session) {
@@ -543,6 +603,63 @@ export function StrategyConfirmationPanel({
   // Calculate risk based on position size (simplified example)
   const maxRisk = Math.round(positionSize * 0.05); // 5% max risk example
 
+  // Helper to calculate font size based on number length
+  const getFontSize = (value: number): string => {
+    const str = value.toString();
+    const length = str.length;
+    if (length <= 3) return "text-8xl"; // $9,999 or less
+    if (length <= 4) return "text-7xl"; // $9,999 or less
+    if (length <= 5) return "text-6xl"; // $9,999 or less
+    if (length <= 6) return "text-5xl"; // $999,999 or less
+    return "text-4xl"; // Larger numbers
+  };
+
+  // Helper to calculate slightly smaller font size for dollar sign
+  const getDollarSignSize = (value: number): string => {
+    const str = value.toString();
+    const length = str.length;
+    if (length <= 3) return "text-7xl"; // Slightly smaller than text-8xl
+    if (length <= 4) return "text-6xl"; // Slightly smaller than text-7xl
+    if (length <= 5) return "text-5xl"; // Slightly smaller than text-6xl
+    if (length <= 6) return "text-4xl"; // Slightly smaller than text-5xl
+    return "text-3xl"; // Slightly smaller than text-4xl
+  };
+
+  // Format position size for display
+  const formatPositionSize = (value: number): string => {
+    if (value === 0) return "";
+    return value.toLocaleString();
+  };
+
+  // Handle position size input change
+  const handlePositionSizeChange = (value: string) => {
+    // Remove all non-digit characters (including commas)
+    const cleaned = value.replace(/[^\d]/g, "");
+    setPositionSizeInput(cleaned);
+
+    const numValue = cleaned === "" ? 0 : parseInt(cleaned, 10);
+    setPositionSize(numValue);
+  };
+
+  // Format input value with commas for display
+  const formatInputWithCommas = (value: string): string => {
+    if (!value) return "";
+    const numValue = parseInt(value.replace(/[^\d]/g, ""), 10);
+    if (isNaN(numValue) || numValue === 0) return "";
+    return numValue.toLocaleString();
+  };
+
+  // Handle focus/blur for position size input
+  const handlePositionSizeFocus = () => {
+    setIsPositionSizeFocused(true);
+    setPositionSizeInput(positionSize === 0 ? "" : positionSize.toString());
+  };
+
+  const handlePositionSizeBlur = () => {
+    setIsPositionSizeFocused(false);
+    setPositionSizeInput("");
+  };
+
   return (
     <Card className="flex-1 flex flex-col overflow-hidden shadow-lg shadow-stone-200/50 bg-white">
       {/* State 1: Strategy Confirmation & Position Sizing */}
@@ -557,94 +674,135 @@ export function StrategyConfirmationPanel({
 
           <div className="flex-1 flex flex-col p-5 bg-[#faf8f4] overflow-y-auto">
             {/* Position Size Section */}
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign size={16} className="text-stone-500" />
-                  <span className="text-sm font-semibold text-stone-700">
-                    How much do you want to trade?
+            <div className="mb-6">
+              {/* Large Input Field */}
+              <div className="flex items-baseline justify-start mb-6">
+                <div className="relative flex items-baseline">
+                  <span
+                    className={`${getDollarSignSize(positionSize)} text-stone-900 font-mono font-bold mr-1 flex-shrink-0`}
+                  >
+                    $
                   </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={
+                      isPositionSizeFocused
+                        ? formatInputWithCommas(positionSizeInput)
+                        : formatPositionSize(positionSize)
+                    }
+                    onChange={(e) => handlePositionSizeChange(e.target.value)}
+                    onFocus={handlePositionSizeFocus}
+                    onBlur={handlePositionSizeBlur}
+                    className={`${getFontSize(positionSize)} font-mono font-bold text-stone-900 bg-transparent border-none outline-none focus:outline-none text-left`}
+                    style={{
+                      width: `${Math.max(1, (isPositionSizeFocused ? formatInputWithCommas(positionSizeInput) : formatPositionSize(positionSize)).length)}ch`,
+                    }}
+                    placeholder="0"
+                  />
+                  {tradeType === "recurring" && (
+                    <span className="text-sm text-stone-400 ml-2 flex-shrink-0">
+                      per trade
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl p-4 border border-stone-200 shadow-sm">
-                <div className="text-center mb-4">
-                  <span className="text-3xl font-mono font-bold text-stone-900">
-                    ${positionSize.toLocaleString()}
-                  </span>
-                  <p className="text-xs text-stone-400 mt-1">per trade</p>
-                </div>
+              {/* Cap Switch (Recurring Only) */}
+              {tradeType === "recurring" && (
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-stone-700">
+                        Set maximum cap
+                      </span>
+                      <span className="text-xs text-stone-500 mt-0.5">
+                        Limit total investment amount
+                      </span>
+                    </div>
+                    <Switch
+                      isSelected={capEnabled}
+                      onValueChange={setCapEnabled}
+                      size="md"
+                      classNames={{
+                        wrapper: "group-data-[selected=true]:bg-amber-500",
+                      }}
+                    />
+                  </div>
 
-                <Slider
-                  size="sm"
-                  step={0.01}
-                  minValue={5}
-                  maxValue={5000}
-                  value={positionSize}
-                  color="success"
-                  onChange={(value) => setPositionSize(value as number)}
-                  className="max-w-full"
-                />
-
-                <div className="flex justify-between text-[10px] text-stone-400 mt-2 uppercase tracking-wider">
-                  <span>$5</span>
-                  <span>$5,000</span>
+                  <AnimatePresence>
+                    {capEnabled && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-2">
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={formatPositionSize(capAmount)}
+                            onValueChange={(value) => {
+                              const cleaned = value.replace(/[^\d]/g, "");
+                              const numValue =
+                                cleaned === "" ? 0 : parseInt(cleaned, 10);
+                              setCapAmount(numValue);
+                            }}
+                            startContent={
+                              <span className="text-stone-600 font-medium">
+                                $
+                              </span>
+                            }
+                            placeholder="0"
+                            variant="bordered"
+                            size="md"
+                            radius="lg"
+                            classNames={{
+                              base: "w-full",
+                              input: "text-base font-medium",
+                              inputWrapper:
+                                "bg-white border-stone-200 hover:border-stone-300 focus-within:border-amber-500",
+                            }}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
+              )}
+
+              {/* Pay with Button*/}
+              <div className="">
+                <Button
+                  variant="light"
+                  className="w-full justify-start py-8 hover:bg-stone-100"
+                  startContent={
+                    <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
+                      <Landmark size={20} className="text-stone-600" />
+                    </div>
+                  }
+                >
+                  <div className="flex flex-col items-start gap-0.5 ml-3">
+                    <span className="text-base font-medium text-stone-900">
+                      Pay with
+                    </span>
+                    <span className="text-xs text-stone-500">
+                      {selectedBroker
+                        ? BROKER_CONFIG[selectedBroker].name
+                        : getConnectedBroker()
+                          ? BROKER_CONFIG[getConnectedBroker()!].name
+                          : "Select Broker"}
+                    </span>
+                  </div>
+                </Button>
               </div>
             </div>
 
             {/* What to Expect */}
             <div className="mb-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap size={16} className="text-stone-500" />
-                <span className="text-sm font-semibold text-stone-700">
-                  What happens next
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-4 bg-white rounded-xl p-4 border border-stone-100 shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                    <Target size={18} className="text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-stone-800">
-                      Our AI monitors {ticker} for buy or sell signals
-                    </p>
-                    <p className="text-xs text-stone-500 mt-0.5">
-                      Our agent works 24/7 so you don&apos;t have to
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 bg-white rounded-xl p-4 border border-stone-100 shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <BanknoteArrowDown size={18} className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-stone-800">
-                      We automate your trades using your brokerage
-                    </p>
-                    <p className="text-xs text-stone-500 mt-0.5">
-                      No manual action required from you
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 bg-white rounded-xl p-4 border border-stone-100 shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <Shield size={18} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-stone-800">
-                      Uses automated stop-loss for downside protection
-                    </p>
-                    <p className="text-xs text-stone-500 mt-0.5">
-                      Limits your downside risk
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <NextSteps ticker={ticker} />
             </div>
 
             {/* Risk Warning */}
@@ -666,38 +824,165 @@ export function StrategyConfirmationPanel({
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="mt-auto space-y-3">
-              <div className="flex gap-3">
-                <Button
-                  className="flex-1 border border-stone-300 text-xs uppercase tracking-widest text-stone-700 hover:bg-stone-100 transition-all duration-300 bg-transparent"
-                  variant="bordered"
-                  size="lg"
-                  radius="lg"
-                  startContent={<PlayCircle size={16} />}
-                  onPress={handlePaperTrading}
-                >
-                  Paper Trade
-                </Button>
+            {/* Trade Result */}
+            {tradeResult && (
+              <div
+                className={`mb-3 p-2 rounded-lg border ${
+                  tradeResult.success
+                    ? "bg-emerald-50 border-emerald-200"
+                    : "bg-red-50 border-red-200"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {tradeResult.success ? (
+                    <Check
+                      size={14}
+                      className="text-emerald-600 flex-shrink-0"
+                    />
+                  ) : (
+                    <AlertCircle
+                      size={14}
+                      className="text-red-500 flex-shrink-0"
+                    />
+                  )}
+                  <p
+                    className={`text-xs font-medium line-clamp-2 ${
+                      tradeResult.success ? "text-emerald-700" : "text-red-700"
+                    }`}
+                  >
+                    {tradeResult.success
+                      ? tradeResult.message
+                      : tradeResult.error}
+                  </p>
+                </div>
+              </div>
+            )}
 
-                <Button
-                  className="flex-1 bg-stone-900 text-white hover:bg-amber-600 transition-all duration-300 shadow-lg text-xs uppercase tracking-widest"
-                  size="lg"
-                  radius="lg"
-                  startContent={
-                    !isSnapTradeInitializing && <DollarSign size={16} />
-                  }
-                  onPress={handleRealTrading}
-                  isLoading={isSnapTradeInitializing}
-                  isDisabled={isSnapTradeInitializing}
+            {/* Action Buttons */}
+            <div className="mt-auto">
+              <div className="flex gap-3 relative">
+                {/* Paper Trade Button */}
+                <motion.div
+                  layout
+                  initial={false}
+                  animate={{
+                    flex: confirmationMode === "real" ? 0 : 1,
+                    width: confirmationMode === "real" ? 0 : "auto",
+                    opacity: confirmationMode === "real" ? 0 : 1,
+                  }}
+                  transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+                  className="min-w-0 overflow-hidden"
+                  style={{
+                    pointerEvents:
+                      confirmationMode === "real" ? "none" : "auto",
+                  }}
                 >
-                  Real Cash
-                </Button>
+                  <Button
+                    className={`w-full text-xs uppercase tracking-widest transition-all duration-300 ${
+                      confirmationMode === "paper"
+                        ? "border-stone-300 text-stone-700 hover:bg-stone-100 bg-transparent hover:border-amber-500 hover:text-amber-600"
+                        : "border-stone-300 text-stone-700 hover:bg-stone-100 bg-transparent"
+                    }`}
+                    variant="bordered"
+                    size="lg"
+                    radius="lg"
+                    onPress={handlePaperTrading}
+                  >
+                    {confirmationMode === "paper" ? (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center justify-center gap-2 whitespace-nowrap"
+                      >
+                        <Sparkles size={16} />
+                        <span className="font-bold">
+                          Start Automating {ticker}
+                        </span>
+                      </motion.div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                        <PlayCircle size={16} />
+                        <span>Paper Trade</span>
+                      </div>
+                    )}
+                  </Button>
+                </motion.div>
+
+                {/* Real Cash Button */}
+                <motion.div
+                  layout
+                  initial={false}
+                  animate={{
+                    flex: confirmationMode === "paper" ? 0 : 1,
+                    width: confirmationMode === "paper" ? 0 : "auto",
+                    opacity: confirmationMode === "paper" ? 0 : 1,
+                  }}
+                  transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+                  className="min-w-0 overflow-hidden"
+                  style={{
+                    pointerEvents:
+                      confirmationMode === "paper" ? "none" : "auto",
+                  }}
+                >
+                  <Button
+                    className={`w-full text-xs uppercase tracking-widest transition-all duration-300 ${
+                      confirmationMode === "real"
+                        ? "bg-stone-900 text-white hover:bg-amber-500 hover:text-stone-900 border-stone-900"
+                        : "bg-stone-900 text-white hover:bg-amber-600 shadow-lg"
+                    }`}
+                    size="lg"
+                    radius="lg"
+                    onPress={handleRealTrading}
+                    isLoading={
+                      confirmationMode === "real" &&
+                      (isSnapTradeInitializing || isExecutingTrade)
+                    }
+                    isDisabled={
+                      confirmationMode === "real" &&
+                      (isSnapTradeInitializing || isExecutingTrade)
+                    }
+                  >
+                    {confirmationMode === "real" ? (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center justify-center gap-2 whitespace-nowrap"
+                      >
+                        {!isExecutingTrade && !isSnapTradeInitializing && (
+                          <Sparkles size={16} />
+                        )}
+                        <span className="font-bold">
+                          Start Automating {ticker}
+                        </span>
+                      </motion.div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                        {!isSnapTradeInitializing && <DollarSign size={16} />}
+                        <span>Real Cash</span>
+                      </div>
+                    )}
+                  </Button>
+                </motion.div>
               </div>
 
-              <p className="text-center text-[10px] text-stone-400">
-                Paper trading uses fake money to test your strategy risk-free
-              </p>
+              <div className="h-6 flex items-center justify-center mt-3">
+                {!confirmationMode ? (
+                  <p className="text-center text-[10px] text-stone-400 leading-tight">
+                    Paper trading uses fake money to test your strategy
+                    risk-free
+                  </p>
+                ) : (
+                  <Button
+                    variant="light"
+                    size="sm"
+                    color="danger"
+                    className="text-[10px] h-auto py-1 px-3 min-w-0 font-medium"
+                    onPress={() => setConfirmationMode(null)}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </>
@@ -1301,7 +1586,7 @@ export function StrategyConfirmationPanel({
             {/* Trade Result */}
             {tradeResult && (
               <div
-                className={`mb-5 p-4 rounded-xl border ${
+                className={`mb-3 p-2 rounded-lg border ${
                   tradeResult.success
                     ? "bg-emerald-50 border-emerald-200"
                     : "bg-red-50 border-red-200"
@@ -1309,12 +1594,18 @@ export function StrategyConfirmationPanel({
               >
                 <div className="flex items-center gap-2">
                   {tradeResult.success ? (
-                    <Check size={16} className="text-emerald-600" />
+                    <Check
+                      size={14}
+                      className="text-emerald-600 flex-shrink-0"
+                    />
                   ) : (
-                    <AlertCircle size={16} className="text-red-500" />
+                    <AlertCircle
+                      size={14}
+                      className="text-red-500 flex-shrink-0"
+                    />
                   )}
                   <p
-                    className={`text-sm font-medium ${
+                    className={`text-xs font-medium line-clamp-2 ${
                       tradeResult.success ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
@@ -1330,19 +1621,31 @@ export function StrategyConfirmationPanel({
             <div className="bg-white rounded-xl p-4 border border-stone-100 shadow-sm mb-6">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-stone-600">Position Size</span>
-                <span className="text-lg font-mono font-bold text-stone-900">
-                  ${positionSize.toLocaleString()}
-                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-mono font-bold text-stone-900">
+                    ${positionSize.toLocaleString()}
+                  </span>
+                  {tradeType === "recurring" && (
+                    <span className="text-xs text-stone-400">per trade</span>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-stone-400 mt-1">
-                per trade · set on previous screen
-              </p>
+              {capEnabled && tradeType === "recurring" && (
+                <p className="text-xs text-stone-400 mt-1">
+                  Cap: ${capAmount.toLocaleString()} · set on previous screen
+                </p>
+              )}
+              {(!capEnabled || tradeType === "one-time") && (
+                <p className="text-xs text-stone-400 mt-1">
+                  Set on previous screen
+                </p>
+              )}
             </div>
 
             {/* Automate Button */}
             <div className="mt-auto space-y-3">
               <Button
-                className="w-full bg-stone-900 text-white hover:bg-amber-500 transition-all duration-300 shadow-lg text-sm uppercase tracking-widest py-7"
+                className="w-full bg-stone-900 text-white hover:bg-amber-500 transition-all duration-300 shadow-lg text-xs uppercase tracking-widest"
                 size="lg"
                 radius="lg"
                 startContent={!isExecutingTrade && <Sparkles size={18} />}

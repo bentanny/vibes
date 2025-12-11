@@ -6,6 +6,7 @@ import { Card } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { ExpandableButton } from "@/components/ui/expandable-button";
+import { LoadingSteps } from "@/components/loading-steps";
 import type { ChatMessage } from "@/types";
 
 interface TradingAgentChatProps {
@@ -44,7 +45,7 @@ export function TradingAgentChat({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#faf8f4]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#faf8f4] chat-scrollbar">
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -53,21 +54,15 @@ export function TradingAgentChat({
             }`}
           >
             <div
-              className={`max-w-[85%] p-3 rounded-lg text-sm leading-relaxed ${
+              className={`max-w-[85%] rounded-lg text-sm leading-relaxed ${
                 msg.role === "user"
-                  ? "bg-stone-800 text-white rounded-br-none shadow-md"
-                  : "bg-white border border-stone-200 text-stone-700 rounded-bl-none shadow-sm"
+                  ? "bg-stone-800 text-white rounded-br-none shadow-md p-3"
+                  : msg.isLoading
+                    ? "bg-transparent p-0 min-w-[200px] pt-2" // No bubble for loading
+                    : "bg-white border border-stone-200 text-stone-700 rounded-bl-none shadow-sm p-3"
               }`}
             >
-              {msg.isLoading ? (
-                <div className="flex items-center gap-2 py-0.5">
-                  <span className="loading-dot w-2 h-2 bg-stone-500 rounded-full [animation-delay:0s]"></span>
-                  <span className="loading-dot w-2 h-2 bg-stone-500 rounded-full [animation-delay:0.2s]"></span>
-                  <span className="loading-dot w-2 h-2 bg-stone-500 rounded-full [animation-delay:0.4s]"></span>
-                </div>
-              ) : (
-                msg.content
-              )}
+              {msg.isLoading ? <LoadingSteps /> : msg.content}
             </div>
           </div>
         ))}
@@ -88,7 +83,7 @@ export function TradingAgentChat({
             base: "flex-1",
             input: "text-base",
             inputWrapper:
-              "bg-stone-50 border-transparent hover:border-amber-400 focus-within:border-amber-400",
+              "bg-stone-50 border-transparent focus-within:border-amber-400 hover:border-transparent",
           }}
           variant="bordered"
           size="lg"
