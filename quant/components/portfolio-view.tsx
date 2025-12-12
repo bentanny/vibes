@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -141,6 +141,27 @@ export function PortfolioView() {
   const [loadingStrategyId, setLoadingStrategyId] = useState<string | null>(
     null,
   );
+  const [fadingOutStrategyId, setFadingOutStrategyId] = useState<string | null>(
+    null,
+  );
+
+  // Auto-select the first strategy on initial load
+  useEffect(() => {
+    if (strategies.length > 0 && selectedStrategyId === null) {
+      setSelectedStrategyId(strategies[0].id);
+    }
+  }, [strategies, selectedStrategyId]);
+
+  // Reset fadingOutStrategyId when selecting a new strategy (unless it's the one being faded out)
+  useEffect(() => {
+    if (
+      selectedStrategyId &&
+      fadingOutStrategyId &&
+      fadingOutStrategyId !== selectedStrategyId
+    ) {
+      setFadingOutStrategyId(null);
+    }
+  }, [selectedStrategyId, fadingOutStrategyId]);
 
   const selectedStrategy =
     strategies.find((s) => s.id === selectedStrategyId) || null;
@@ -173,6 +194,40 @@ export function PortfolioView() {
     } finally {
       setLoadingStrategyId(null);
     }
+  };
+
+  const handleStopStrategy = async (strategyId: string) => {
+    setLoadingStrategyId(strategyId);
+    setFadingOutStrategyId(strategyId);
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Update strategy to completed
+      setStrategies((prev) =>
+        prev.map((strategy) => {
+          if (strategy.id === strategyId) {
+            return { ...strategy, type: "completed" as const };
+          }
+          return strategy;
+        }),
+      );
+
+      // Wait for fade out animation
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Keep the strategy selected (it will now be in the completed section)
+      setFadingOutStrategyId(null);
+    } finally {
+      setLoadingStrategyId(null);
+    }
+  };
+
+  const handleStrategySelect = (strategyId: string) => {
+    // Always clear fading out state when selecting a new strategy
+    setFadingOutStrategyId(null);
+    setSelectedStrategyId(strategyId);
   };
 
   const handleGoHome = () => {
@@ -245,28 +300,37 @@ export function PortfolioView() {
           <StrategyListView
             strategies={strategies}
             selectedId={selectedStrategyId}
-            onSelect={setSelectedStrategyId}
+            onSelect={handleStrategySelect}
             onNewStrategy={handleGoHome}
           />
         </motion.div>
 
         {/* Right Column: Strategy Details */}
-        <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, ease: "easeInOut", delay: 0.1 }}
-          className="w-2/3 flex flex-col -ml-16 relative z-0"
-        >
-          <StrategyDetailsView
-            strategy={selectedStrategy}
-            onTypeChange={handleStrategyTypeChange}
-            isLoading={
-              selectedStrategy
-                ? loadingStrategyId === selectedStrategy.id
-                : false
-            }
-          />
-        </motion.div>
+        <AnimatePresence mode="wait">
+          {selectedStrategy &&
+            (!fadingOutStrategyId ||
+              fadingOutStrategyId !== selectedStrategy.id) && (
+              <motion.div
+                key={selectedStrategy.id}
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="w-2/3 flex flex-col -ml-16 relative z-0"
+              >
+                <StrategyDetailsView
+                  strategy={selectedStrategy}
+                  onTypeChange={handleStrategyTypeChange}
+                  onStop={handleStopStrategy}
+                  isLoading={
+                    selectedStrategy
+                      ? loadingStrategyId === selectedStrategy.id
+                      : false
+                  }
+                />
+              </motion.div>
+            )}
+        </AnimatePresence>
       </div>
     </div>
   );

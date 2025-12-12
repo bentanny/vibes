@@ -1,9 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
+import { Tooltip } from "@heroui/tooltip";
 import {
   Table,
   TableHeader,
@@ -27,6 +29,8 @@ import {
   Clock,
   Eye,
   Pencil,
+  Check,
+  RotateCw,
 } from "lucide-react";
 import type { StrategyItem } from "./strategy-list-view";
 import { RollingText } from "@/components/ui/shadcn-io/rolling-text";
@@ -38,14 +42,109 @@ interface StrategyDetailsViewProps {
     strategyId: string,
     newType: "active" | "paused" | "completed",
   ) => void;
+  onStop?: (strategyId: string) => Promise<void>;
   isLoading?: boolean;
 }
 
 export function StrategyDetailsView({
   strategy,
   onTypeChange,
+  onStop,
   isLoading = false,
 }: StrategyDetailsViewProps) {
+  const [pauseResumeState, setPauseResumeState] = useState<
+    "default" | "confirm" | "loading" | "success"
+  >("default");
+  const [stopState, setStopState] = useState<
+    "default" | "confirm" | "loading" | "success"
+  >("default");
+  const [restartState, setRestartState] = useState<
+    "default" | "confirm" | "loading" | "success"
+  >("default");
+
+  // Reset states when strategy changes
+  useEffect(() => {
+    setPauseResumeState("default");
+    setStopState("default");
+    setRestartState("default");
+  }, [strategy?.id]);
+
+  const handlePauseResumeClick = async () => {
+    if (!strategy) return;
+
+    if (pauseResumeState === "default") {
+      setPauseResumeState("confirm");
+      return;
+    }
+
+    if (pauseResumeState === "confirm") {
+      if (!strategy) return;
+      setPauseResumeState("loading");
+      try {
+        if (onTypeChange) {
+          const newType = strategy.type === "active" ? "paused" : "active";
+          await onTypeChange(strategy.id, newType);
+          setPauseResumeState("success");
+          setTimeout(() => {
+            setPauseResumeState("default");
+          }, 1500);
+        }
+      } catch (error) {
+        setPauseResumeState("default");
+      }
+    }
+  };
+
+  const handleStopClick = async () => {
+    if (!strategy) return;
+
+    if (stopState === "default") {
+      setStopState("confirm");
+      return;
+    }
+
+    if (stopState === "confirm") {
+      if (!strategy) return;
+      setStopState("loading");
+      try {
+        if (onStop) {
+          await onStop(strategy.id);
+          setStopState("success");
+          setTimeout(() => {
+            setStopState("default");
+          }, 1500);
+        }
+      } catch (error) {
+        setStopState("default");
+      }
+    }
+  };
+
+  const handleRestartClick = async () => {
+    if (!strategy) return;
+
+    if (restartState === "default") {
+      setRestartState("confirm");
+      return;
+    }
+
+    if (restartState === "confirm") {
+      if (!strategy) return;
+      setRestartState("loading");
+      try {
+        if (onTypeChange) {
+          await onTypeChange(strategy.id, "active");
+          setRestartState("success");
+          setTimeout(() => {
+            setRestartState("default");
+          }, 1500);
+        }
+      } catch (error) {
+        setRestartState("default");
+      }
+    }
+  };
+
   if (!strategy) {
     return (
       <Card className="flex-1 flex flex-col items-center justify-center p-8 bg-[#f3f1ed] border-none shadow-none h-full text-center">
@@ -69,7 +168,7 @@ export function StrategyDetailsView({
       <div className="h-1 w-full bg-gradient-to-r from-stone-200 via-amber-400 to-stone-200" />
 
       {/* Scrollable Content */}
-      <div className="p-8 pl-24 flex-1 overflow-y-auto">
+      <div className="p-8 pl-24 flex-1 overflow-y-auto chat-scrollbar">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -138,11 +237,36 @@ export function StrategyDetailsView({
           </div>
 
           <div className="flex gap-2">
-            <ExpandableButton
-              label="Edit Strategy"
-              icon={Pencil}
-              onClick={() => {}}
-            />
+            <Tooltip
+              content="Coming soon!"
+              delay={0}
+              motionProps={{
+                variants: {
+                  exit: {
+                    opacity: 0,
+                    transition: {
+                      duration: 0.1,
+                      ease: "easeIn",
+                    },
+                  },
+                  enter: {
+                    opacity: 1,
+                    transition: {
+                      duration: 0.1,
+                      ease: "easeOut",
+                    },
+                  },
+                },
+              }}
+            >
+              <div>
+                <ExpandableButton
+                  label="Edit Strategy"
+                  icon={Pencil}
+                  onClick={() => {}}
+                />
+              </div>
+            </Tooltip>
           </div>
         </div>
 
@@ -154,21 +278,33 @@ export function StrategyDetailsView({
               <DollarSign size={48} />
             </div>
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wider mb-1">
-              Total P&L
+              {strategy.pnl >= 0 ? "Earnings" : "Losses"}
             </p>
             <div className="h-10 relative">
               {/* Default View (Total P&L) - Visible by default, hidden on hover */}
               <div className="absolute inset-0 transition-all duration-300 opacity-100 translate-y-0 group-hover/pnl:opacity-0 group-hover/pnl:-translate-y-2 flex items-baseline gap-2">
                 <span
-                  className={`text-3xl font-mono font-bold ${strategy.pnl >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                  className={`text-3xl font-mono font-bold ${strategy.pnl >= 0 ? "text-emerald-600" : "text-red-600"} flex items-baseline`}
                 >
-                  {strategy.pnl >= 0 ? "+" : ""}
-                  {strategy.pnl.toLocaleString()}
+                  <span
+                    className="text-base mr-0.5 align-top"
+                    style={{ lineHeight: "1.1" }}
+                  >
+                    $
+                  </span>
+                  {Math.abs(strategy.pnl).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
                 <span
                   className={`text-sm font-bold ${strategy.pnl >= 0 ? "text-emerald-500" : "text-red-500"}`}
                 >
-                  ({strategy.pnlPercent}%)
+                  (
+                  {typeof strategy.pnlPercent === "number"
+                    ? Math.abs(strategy.pnlPercent).toFixed(2)
+                    : Math.abs(Number(strategy.pnlPercent) || 0).toFixed(2)}
+                  %)
                 </span>
               </div>
 
@@ -183,10 +319,18 @@ export function StrategyDetailsView({
                       (strategy.realizedPnl || 0) >= 0
                         ? "text-emerald-600"
                         : "text-red-600"
-                    }`}
+                    } flex items-baseline`}
                   >
-                    {(strategy.realizedPnl || 0) >= 0 ? "+" : ""}
-                    {(strategy.realizedPnl || 0).toLocaleString()}
+                    <span
+                      className="text-xs mr-0.5 align-top"
+                      style={{ lineHeight: "1.1" }}
+                    >
+                      $
+                    </span>
+                    {(strategy.realizedPnl || 0).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                 </div>
                 <div className="h-8 w-px bg-stone-200" />
@@ -199,10 +343,18 @@ export function StrategyDetailsView({
                       (strategy.unrealizedPnl || 0) >= 0
                         ? "text-emerald-600"
                         : "text-red-600"
-                    }`}
+                    } flex items-baseline`}
                   >
-                    {(strategy.unrealizedPnl || 0) >= 0 ? "+" : ""}
-                    {(strategy.unrealizedPnl || 0).toLocaleString()}
+                    <span
+                      className="text-xs mr-0.5 align-top"
+                      style={{ lineHeight: "1.1" }}
+                    >
+                      $
+                    </span>
+                    {(strategy.unrealizedPnl || 0).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                 </div>
               </div>
@@ -331,38 +483,155 @@ export function StrategyDetailsView({
 
       {/* Fixed Actions Footer */}
       <div className="p-6 pl-24 border-t border-stone-200 bg-[#f3f1ed] z-10 mt-auto">
-        <div className="flex gap-4">
-          <Button
-            className={`flex-1 ${strategy.type === "active" ? "bg-amber-100 text-amber-900 hover:bg-amber-200" : "bg-emerald-100 text-emerald-900 hover:bg-emerald-200"}`}
-            radius="lg"
-            startContent={
-              strategy.type === "active" ? (
-                <Pause size={16} />
-              ) : (
-                <Play size={16} />
-              )
-            }
-            isLoading={isLoading}
-            isDisabled={isLoading}
-            onPress={() => {
-              if (onTypeChange && !isLoading) {
-                const newType =
-                  strategy.type === "active" ? "paused" : "active";
-                onTypeChange(strategy.id, newType);
+        {strategy.type === "completed" ? (
+          <div className="flex justify-end">
+            <Button
+              className={`${
+                restartState === "success"
+                  ? "bg-emerald-100 text-emerald-900"
+                  : restartState === "confirm"
+                    ? "bg-red-100 text-red-900 hover:bg-red-200"
+                    : "bg-emerald-100 text-emerald-900 hover:bg-emerald-200"
+              }`}
+              radius="lg"
+              startContent={
+                restartState === "success" ? (
+                  <Check size={16} />
+                ) : restartState === "loading" ? null : (
+                  <RotateCw size={16} />
+                )
               }
-            }}
-          >
-            {strategy.type === "active" ? "Pause Strategy" : "Resume Strategy"}
-          </Button>
-          <Button
-            className="flex-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-            variant="bordered"
-            radius="lg"
-            startContent={<StopCircle size={16} />}
-          >
-            Stop & Close Positions
-          </Button>
-        </div>
+              isLoading={restartState === "loading" || isLoading}
+              isDisabled={restartState === "loading" || isLoading}
+              onPress={handleRestartClick}
+            >
+              {restartState === "success"
+                ? "Restarted"
+                : restartState === "confirm"
+                  ? "Confirm Restart?"
+                  : restartState === "loading"
+                    ? "Restarting..."
+                    : "Restart Strategy"}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-4 relative">
+              <motion.div
+                layout
+                initial={false}
+                animate={{
+                  flex: stopState !== "default" ? 0 : 1,
+                  width: stopState !== "default" ? 0 : "auto",
+                  opacity: stopState !== "default" ? 0 : 1,
+                }}
+                transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+                className="min-w-0 overflow-hidden"
+                style={{
+                  pointerEvents: stopState !== "default" ? "none" : "auto",
+                }}
+              >
+                <Button
+                  className="w-full"
+                  radius="lg"
+                  variant="flat"
+                  color={
+                    pauseResumeState === "success"
+                      ? "success"
+                      : strategy.type === "active"
+                        ? "warning"
+                        : "success"
+                  }
+                  startContent={
+                    pauseResumeState === "success" ? (
+                      <Check size={16} />
+                    ) : pauseResumeState ===
+                      "loading" ? null : strategy.type === "active" ? (
+                      <Pause size={16} />
+                    ) : (
+                      <Play size={16} />
+                    )
+                  }
+                  isLoading={pauseResumeState === "loading" || isLoading}
+                  isDisabled={pauseResumeState === "loading" || isLoading}
+                  onPress={handlePauseResumeClick}
+                >
+                  {pauseResumeState === "success"
+                    ? "Done"
+                    : pauseResumeState === "confirm"
+                      ? strategy.type === "active"
+                        ? "Confirm Pause?"
+                        : "Confirm Resume?"
+                      : pauseResumeState === "loading"
+                        ? "Processing..."
+                        : strategy.type === "active"
+                          ? "Pause Strategy"
+                          : "Resume Strategy"}
+                </Button>
+              </motion.div>
+
+              <motion.div
+                layout
+                initial={false}
+                animate={{
+                  flex: pauseResumeState !== "default" ? 0 : 1,
+                  width: pauseResumeState !== "default" ? 0 : "auto",
+                  opacity: pauseResumeState !== "default" ? 0 : 1,
+                }}
+                transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+                className="min-w-0 overflow-hidden"
+                style={{
+                  pointerEvents:
+                    pauseResumeState !== "default" ? "none" : "auto",
+                }}
+              >
+                <Button
+                  className="w-full"
+                  variant="solid"
+                  color={stopState === "success" ? "success" : "danger"}
+                  radius="lg"
+                  startContent={
+                    stopState === "success" ? (
+                      <Check size={16} />
+                    ) : stopState === "loading" ? null : (
+                      <StopCircle size={16} />
+                    )
+                  }
+                  isLoading={stopState === "loading"}
+                  isDisabled={stopState === "loading"}
+                  onPress={handleStopClick}
+                >
+                  {stopState === "success"
+                    ? "Stopped"
+                    : stopState === "confirm"
+                      ? "Confirm Stop?"
+                      : stopState === "loading"
+                        ? "Stopping..."
+                        : "Stop & Close Positions"}
+                </Button>
+              </motion.div>
+            </div>
+
+            {(pauseResumeState !== "default" || stopState !== "default") &&
+              pauseResumeState !== "success" &&
+              stopState !== "success" && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="light"
+                    size="sm"
+                    color="danger"
+                    className="text-[10px] h-auto px-3 min-w-0 font-medium"
+                    onPress={() => {
+                      setPauseResumeState("default");
+                      setStopState("default");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+          </div>
+        )}
       </div>
     </Card>
   );
