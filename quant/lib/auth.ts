@@ -79,14 +79,14 @@ export const authOptions: NextAuthOptions = {
     signIn: "/", // Use custom sign-in modal instead of default page
   },
   callbacks: {
-    async jwt({ token, user, account, profile }: { token: JWT; user?: { id: string; image?: string }; account?: Account | null; profile?: { picture?: string } }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
         token.id = user.id;
-        token.picture = user.image;
+        token.picture = user.image ?? undefined;
       }
       // Google profile includes the picture
-      if (profile) {
-        token.picture = profile.picture;
+      if (profile && "picture" in profile) {
+        token.picture = (profile as { picture?: string }).picture;
       }
       
       // Handle Coinbase OAuth tokens

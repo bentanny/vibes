@@ -161,11 +161,19 @@ export async function getConnectionPortalUrl(
     connectionType: options?.connectionType,
   });
 
-  if (!response.data.redirectURI) {
+  // Handle both response types
+  const redirectURI = 
+    "redirectURI" in response.data 
+      ? response.data.redirectURI 
+      : "redirectURI" in (response.data as any)
+        ? (response.data as any).redirectURI
+        : null;
+
+  if (!redirectURI) {
     throw new Error("Failed to get connection portal URL");
   }
 
-  return response.data.redirectURI;
+  return redirectURI as string;
 }
 
 /**
@@ -174,7 +182,7 @@ export async function getConnectionPortalUrl(
 export async function getBrokerages(): Promise<SnapTradeBrokerage[]> {
   const client = getSnapTradeClient();
 
-  const response = await client.referenceData.listBrokerages();
+  const response = await client.referenceData.listAllBrokerages();
 
   return (response.data || []).map((b) => ({
     id: b.id || "",

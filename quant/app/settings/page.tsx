@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { SettingsView } from "@/components/settings-view";
 
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter();
 
   const handleGoHome = () => {
@@ -11,4 +12,12 @@ export default function SettingsPage() {
   };
 
   return <SettingsView onGoHome={handleGoHome} />;
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SettingsContent />
+    </Suspense>
+  );
 }
