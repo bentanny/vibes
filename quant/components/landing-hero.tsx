@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { motion, useSpring, useMotionValue, useTransform } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { Chip } from "@heroui/chip";
@@ -68,10 +69,6 @@ export const LandingHero = ({
 }) => {
   const [strategy, setStrategy] = useState(initialStrategy);
 
-  const handleImgError = () => {
-    // Image error handled by parent
-  };
-
   const handleSubmit = () => {
     if (strategy.trim()) {
       onDeploy(strategy);
@@ -79,8 +76,11 @@ export const LandingHero = ({
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0a] text-white">
-      {/* Dynamic Background */}
+    <div
+      className="relative w-full h-full h-[100dvh] overflow-hidden text-white m-0 p-0"
+      style={{ maxHeight: "100dvh", overscrollBehavior: "none" }}
+    >
+      {/* Dynamic Background - extends to cover navbar area */}
       <div className="absolute inset-0 z-0">
         {/* The Image with a slow pan effect */}
         <motion.div
@@ -89,18 +89,16 @@ export const LandingHero = ({
           transition={{ duration: 10, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <div className="absolute inset-0 w-full h-full overflow-hidden">
-            <img
+          <div className="relative w-full h-full overflow-hidden">
+            <Image
               src={imgSrc}
-              onError={handleImgError}
               alt="Classical Fresco"
-              className="opacity-60 w-full h-full"
+              fill
+              priority
+              unoptimized
+              className="opacity-60 object-cover"
               style={{
-                objectFit: "cover",
                 objectPosition: "center 40%",
-                // Ensure image always fills the screen
-                minWidth: "100%",
-                minHeight: "100%",
               }}
             />
           </div>
@@ -159,7 +157,7 @@ export const LandingHero = ({
                   </span>
                 </h1>
 
-                <p className="mt-6 text-lg md:text-xl font-light text-white/70 max-w-xl mx-auto leading-relaxed">
+                <p className="mt-6 text-sm md:text-xl font-light text-white/70 max-w-xl mx-auto leading-relaxed">
                   Describe your trading strategy in plain English. Our AI agents
                   execute, optimize, and scale your positions instantly.
                 </p>
@@ -170,7 +168,7 @@ export const LandingHero = ({
                 value={strategy}
                 onChange={setStrategy}
                 onSubmit={handleSubmit}
-                placeholder="e.g. Buy ETH when RSI < 30 and volume spikes..."
+                placeholder="Buy BTC when price spikes 5%..."
               />
             </div>
           </div>
@@ -210,4 +208,3 @@ export const LandingHero = ({
     </div>
   );
 };
-

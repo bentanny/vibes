@@ -17,13 +17,18 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: siteConfig.name,
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -37,9 +42,10 @@ export default function RootLayout({
       <body
         suppressHydrationWarning
         className={clsx(
-          "min-h-screen text-foreground bg-background font-sans antialiased",
+          "text-foreground font-sans antialiased",
           fontSans.variable,
         )}
+        style={{ backgroundColor: "transparent", margin: 0, padding: 0 }}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
           <LayoutContent>{children}</LayoutContent>
