@@ -33,19 +33,24 @@ export function TradingAgentChat({
   useEffect(scrollToBottom, [messages]);
 
   return (
-    <Card className="flex-1 flex flex-col overflow-hidden shadow-lg shadow-stone-200/50 bg-white">
+    <Card className="flex-1 flex flex-col overflow-hidden shadow-lg shadow-stone-200/50 bg-white h-full md:h-auto w-full md:w-auto">
       {/* Header */}
-      <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-[#f7f5f1]">
-        <div className="flex items-center gap-3">
+      <div className="p-3 md:p-4 border-b border-stone-100 flex items-center justify-between bg-[#f7f5f1] flex-shrink-0">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-medium text-stone-700">Trading Agent</span>
-          <Bot size={18} className="text-stone-400 ml-1" />
+          <span className="font-medium text-stone-700 text-sm md:text-base">
+            Trading Agent
+          </span>
+          <Bot
+            size={16}
+            className="text-stone-400 ml-1 md:w-[18px] md:h-[18px]"
+          />
         </div>
         <ExpandableButton label="New Strategy" onClick={onNewStrategy} />
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#faf8f4] chat-scrollbar">
+      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4 bg-[#faf8f4] chat-scrollbar min-h-0">
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -72,7 +77,7 @@ export function TradingAgentChat({
       {/* Input Form */}
       <form
         onSubmit={onSend}
-        className="p-4 bg-[#f7f5f1] border-t border-stone-100 flex gap-2"
+        className="p-3 md:p-4 bg-[#f7f5f1] border-t border-stone-100 flex gap-0 md:gap-2 flex-shrink-0"
       >
         <Input
           type="text"
@@ -80,8 +85,8 @@ export function TradingAgentChat({
           onValueChange={onInputChange}
           placeholder="Refine strategy..."
           classNames={{
-            base: "flex-1",
-            input: "text-base",
+            base: "flex-1 w-full",
+            input: "text-sm md:text-base",
             inputWrapper:
               "bg-stone-50 border-transparent focus-within:border-amber-400 hover:border-transparent",
           }}
@@ -92,7 +97,7 @@ export function TradingAgentChat({
         <Button
           type="submit"
           isIconOnly
-          className="bg-stone-900 text-white hover:bg-stone-700"
+          className="hidden md:flex bg-stone-900 text-white hover:bg-stone-700"
           radius="md"
           size="lg"
         >

@@ -5,9 +5,17 @@ import { PageNavbar } from "@/components/page-navbar";
 
 export function LayoutContent({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden">
+    <div
+      className="relative flex flex-col h-[100dvh] w-full overflow-hidden"
+      style={{ backgroundColor: "transparent", maxHeight: "100dvh" }}
+    >
       <PageNavbar />
-      <main className="flex-grow relative z-0 overflow-auto">{children}</main>
+      <main
+        className="flex-1 relative z-0 overflow-hidden m-0 p-0 w-full"
+        style={{ minHeight: 0, maxHeight: "100%", overscrollBehavior: "none" }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

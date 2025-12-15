@@ -32,7 +32,7 @@ export function StrategyInput({
       transition={{ duration: 0.8, delay: 0.4 }}
       className="mt-12 relative max-w-lg mx-auto"
     >
-      <div className="relative flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg p-2 hover:bg-white/15 focus-within:bg-white/15">
+      <div className="relative flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg p-1.5 md:p-2 hover:bg-white/15 focus-within:bg-white/15">
         <Input
           type="text"
           placeholder={placeholder}
@@ -47,21 +47,21 @@ export function StrategyInput({
           classNames={{
             base: "w-full",
             input:
-              "bg-transparent !text-white placeholder:text-white/60 font-light tracking-wide",
+              "bg-transparent !text-white placeholder:text-white/60 font-light tracking-wide text-base",
             inputWrapper:
-              "bg-transparent shadow-none border-none hover:bg-transparent hover:border-none focus-within:bg-transparent focus-within:border-none data-[hover=true]:bg-transparent",
+              "bg-transparent shadow-none border-none hover:bg-transparent hover:border-none focus-within:bg-transparent focus-within:border-none data-[hover=true]:bg-transparent h-10 md:h-12",
           }}
           variant="flat"
-          size="lg"
+          size="md"
         />
         <Button
           onPress={handleSubmit}
           isDisabled={!value.trim()}
           isIconOnly
-          className="ml-2 min-w-10 w-10 h-10 bg-white text-black rounded-md hover:bg-white/90 transition-colors"
+          className="ml-2 min-w-8 w-8 h-8 md:min-w-10 md:w-10 md:h-10 bg-white text-black rounded-md hover:bg-white/90 transition-colors"
           radius="md"
         >
-          <Send size={18} />
+          <Send className="w-3.5 h-3.5 md:w-[18px] md:h-[18px]" />
         </Button>
       </div>
 
