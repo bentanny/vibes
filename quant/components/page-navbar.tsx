@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/avatar";
 import { Logo } from "@/components/icons";
-import { GalleryVerticalEnd } from "lucide-react";
+import { GalleryVerticalEnd, Layers, TextAlignJustify } from "lucide-react";
 
 export function PageNavbar() {
   const pathname = usePathname();
@@ -103,7 +103,7 @@ export function PageNavbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-full p-8 grid grid-cols-3 items-center z-50 text-white/90 pointer-events-none">
+    <nav className="fixed top-0 left-0 w-full p-8 grid grid-cols-2 md:grid-cols-3 items-center z-50 text-white/90 pointer-events-none">
       <div className="pointer-events-auto mix-blend-difference">
         <a
           href="/"
@@ -167,13 +167,25 @@ export function PageNavbar() {
             </button>
           </>
         ) : (
-          <Button
-            className="px-6 py-2 border border-white/30 rounded-full text-xs uppercase tracking-widest text-white hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 bg-transparent mix-blend-difference"
-            variant="bordered"
-            radius="full"
-          >
-            Launch Terminal
-          </Button>
+          <>
+            {/* Stack icon for mobile */}
+            <Button
+              isIconOnly
+              className="md:hidden w-10 h-10 border border-white/30 rounded-full text-white hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 bg-transparent mix-blend-difference"
+              variant="bordered"
+              radius="full"
+            >
+              <TextAlignJustify size={18} />
+            </Button>
+            {/* Launch Terminal button for desktop */}
+            <Button
+              className="hidden md:flex px-6 py-2 border border-white/30 rounded-full text-xs uppercase tracking-widest text-white hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 bg-transparent mix-blend-difference"
+              variant="bordered"
+              radius="full"
+            >
+              Launch Terminal
+            </Button>
+          </>
         )}
       </div>
     </nav>

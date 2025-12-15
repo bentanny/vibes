@@ -33,6 +33,7 @@ import { useStockPrice } from "@/hooks/use-stock-price";
 import { Spinner } from "@heroui/spinner";
 import { RollingText } from "@/components/ui/shadcn-io/rolling-text";
 import { streamRun } from "@/lib/langgraph";
+import { MobileDashboardLayout } from "@/components/mobile-dashboard-layout";
 import type { ChatMessage, TradingArchetype } from "@/types";
 
 interface DashboardViewProps {
@@ -95,6 +96,19 @@ function clearPersistedState(ticker: string) {
   }
 }
 
+// Safe UUID generator that works in all environments
+function generateUUID(): string {
+  if (typeof window !== "undefined" && window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  // Fallback UUID v4 generator
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export function DashboardView({
   strategy,
   imgSrc,
@@ -122,7 +136,7 @@ export function DashboardView({
     if (persistedState.current?.threadId) {
       return persistedState.current.threadId;
     }
-    return crypto.randomUUID();
+    return generateUUID();
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -238,13 +252,22 @@ export function DashboardView({
 
   // Watch messages to detect when the agent response arrives (loading stops)
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (!hasAgentResponded && messages.length > 0) {
       const lastMsg = messages[messages.length - 1];
       // Check if we have an assistant message that is done loading
       if (lastMsg.role === "assistant" && !lastMsg.isLoading) {
-        setHasAgentResponded(true);
+        // Add a 2-second delay before sliding down
+        timeoutId = setTimeout(() => {
+          setHasAgentResponded(true);
+        }, 2000);
       }
     }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [messages, hasAgentResponded]);
 
   useEffect(() => {
@@ -574,75 +597,106 @@ export function DashboardView({
   }
 
   return (
-    <div className="w-full h-screen bg-[#fdfbf7] flex flex-col relative overflow-hidden overflow-x-hidden">
-      {/* Background Texture - Light Mode */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Faint watermark of the art */}
-      <img src={imgSrc} className="hidden" alt="" onError={handleImgError} />
-
-      {/* Header */}
-      <nav className="absolute top-0 left-0 w-full p-8 flex justify-between items-center z-50 text-stone-900">
+    <div className="w-full h-full bg-[#fdfbf7] relative overflow-hidden">
+      <div className="md:hidden w-full h-full absolute inset-0 z-50">
+        <MobileDashboardLayout
+          messages={messages}
+          inputText={inputText}
+          setInputText={setInputText}
+          handleSend={handleSend}
+          handleGoBack={handleGoBack}
+          isInitialized={isInitialized}
+          setIsInitialized={setIsInitialized}
+          isStrategyVisible={isStrategyVisible}
+          hasAgentResponded={hasAgentResponded}
+          ticker={ticker}
+          companyName={companyName}
+          stockPrice={stockPrice}
+          changePercent={changePercent}
+          isPriceLoading={isPriceLoading}
+          isConnected={isConnected}
+          imgSrc={imgSrc}
+          detectedArchetype={detectedArchetype}
+          currentLogic={currentLogic}
+          mockVisualizationData={mockVisualizationData}
+          ENABLE_AGENT_VISUALIZATION={ENABLE_AGENT_VISUALIZATION}
+          session={session}
+          status={status}
+          router={router}
+          isSignInOpen={isSignInOpen}
+          setIsSignInOpen={setIsSignInOpen}
+          onGoBack={handleGoBack}
+        />
+      </div>
+      <div className="hidden md:flex w-full h-full flex-col relative overflow-hidden overflow-x-hidden">
+        {/* Background Texture - Light Mode */}
         <div
-          className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
-          onClick={handleGoBack}
-        >
-          <Logo size={20} className="text-stone-900" />
-          <span className="text-sm tracking-[0.2em] uppercase font-medium">
-            Quant
-          </span>
-        </div>
+          className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          }}
+        />
 
-        {status === "authenticated" && session?.user ? (
-          <div className="flex items-center gap-3">
-            <PortfolioButton router={router} />
-            <button
-              onClick={() => router.push("/settings")}
-              className="flex items-center gap-3 px-3 py-1.5 border border-stone-300 rounded-full hover:bg-stone-900 hover:text-white transition-all duration-300 group"
-            >
-              <Avatar
-                src={session.user.image || undefined}
-                name={session.user.name || "User"}
-                size="sm"
-                className="w-8 h-8 border border-stone-200 group-hover:border-stone-700"
-                showFallback
-                fallback={
-                  <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-xs font-semibold">
-                    {session.user.name?.[0]?.toUpperCase() || "U"}
-                  </div>
-                }
-              />
-              <span className="text-xs uppercase tracking-widest text-stone-900 group-hover:text-white transition-colors">
-                Profile
-              </span>
-            </button>
-          </div>
-        ) : (
-          <Button
-            className="px-6 py-2 border border-stone-300 rounded-full text-xs uppercase tracking-widest text-stone-900 hover:bg-stone-900 hover:text-white transition-all duration-300 bg-transparent"
-            variant="bordered"
-            radius="full"
-            onPress={() => setIsSignInOpen(true)}
+        {/* Faint watermark of the art */}
+        <img src={imgSrc} className="hidden" alt="" onError={handleImgError} />
+
+        {/* Header */}
+        <nav className="absolute top-0 left-0 w-full p-8 flex justify-between items-center z-50 text-stone-900">
+          <div
+            className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
+            onClick={handleGoBack}
           >
-            Sign In
-          </Button>
-        )}
-      </nav>
+            <Logo size={20} className="text-stone-900" />
+            <span className="text-sm tracking-[0.2em] uppercase font-medium">
+              Quant
+            </span>
+          </div>
 
-      {/* Sign In Modal */}
-      <SignInModal isOpen={isSignInOpen} onOpenChange={setIsSignInOpen} />
+          {status === "authenticated" && session?.user ? (
+            <div className="flex items-center gap-3">
+              <PortfolioButton router={router} />
+              <button
+                onClick={() => router.push("/settings")}
+                className="flex items-center gap-3 px-3 py-1.5 border border-stone-300 rounded-full hover:bg-stone-900 hover:text-white transition-all duration-300 group"
+              >
+                <Avatar
+                  src={session.user.image || undefined}
+                  name={session.user.name || "User"}
+                  size="sm"
+                  className="w-8 h-8 border border-stone-200 group-hover:border-stone-700"
+                  showFallback
+                  fallback={
+                    <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-xs font-semibold">
+                      {session.user.name?.[0]?.toUpperCase() || "U"}
+                    </div>
+                  }
+                />
+                <span className="text-xs uppercase tracking-widest text-stone-900 group-hover:text-white transition-colors">
+                  Profile
+                </span>
+              </button>
+            </div>
+          ) : (
+            <Button
+              className="px-6 py-2 border border-stone-300 rounded-full text-xs uppercase tracking-widest text-stone-900 hover:bg-stone-900 hover:text-white transition-all duration-300 bg-transparent"
+              variant="bordered"
+              radius="full"
+              onPress={() => setIsSignInOpen(true)}
+            >
+              Sign In
+            </Button>
+          )}
+        </nav>
 
-      <div
-        className={`flex-1 flex mt-24 pt-8 pb-8 px-8 gap-8 z-10 max-w-[1600px] mx-auto w-full overflow-y-auto overflow-x-hidden ${
-          !isStrategyVisible ? "justify-center" : ""
-        }`}
-      >
-        {/* 
+        {/* Sign In Modal */}
+        <SignInModal isOpen={isSignInOpen} onOpenChange={setIsSignInOpen} />
+
+        <div
+          className={`flex-1 flex mt-16 md:mt-24 pt-4 pb-4 md:pt-8 md:pb-8 px-4 md:px-8 gap-4 md:gap-8 z-10 max-w-[1600px] mx-auto w-full overflow-y-auto overflow-x-hidden ${
+            !isStrategyVisible ? "justify-center" : ""
+          }`}
+        >
+          {/* 
           ====================================================================
           CHAT COMPONENT ANIMATION - CRITICAL: DO NOT MODIFY WITHOUT REVIEW
           ====================================================================
@@ -671,21 +725,21 @@ export function DashboardView({
           page to dashboard to ensure the chat doesn't drift on initial load.
           ====================================================================
         */}
-        {/* Left Column: Chat Experience */}
-        <motion.div
-          initial={false}
-          animate={{
-            width: isInitialized ? 0 : "33.333333%",
-            marginRight: isInitialized ? 0 : undefined,
-          }}
-          transition={{
-            duration: 0.5,
-            ease: "easeInOut",
-          }}
-          className="flex-shrink-0 flex flex-col relative z-10"
-          style={{ minWidth: 0 }}
-        >
-          {/* 
+          {/* Left Column: Chat Experience */}
+          <motion.div
+            initial={false}
+            animate={{
+              width: isInitialized ? 0 : "33.333333%",
+              marginRight: isInitialized ? 0 : undefined,
+            }}
+            transition={{
+              duration: 0.5,
+              ease: "easeInOut",
+            }}
+            className="flex-shrink-0 flex flex-col relative z-10"
+            style={{ minWidth: 0 }}
+          >
+            {/* 
             ANIMATION NOTE: 
             To create a smooth "slide off" effect without squashing the content:
             1. The outer motion.div handles the layout collapse (width -> 0)
@@ -693,113 +747,112 @@ export function DashboardView({
             3. The fixed/min/max width on this inner container prevents text reflow
             4. Removing overflow-hidden from parent allows it to slide past the edge
           */}
-          <motion.div
-            animate={{
-              x: isInitialized ? "-120%" : 0,
-            }}
-            transition={{
-              duration: 0.5,
-              ease: "easeInOut",
-            }}
-            style={{ width: "30vw", minWidth: "450px", maxWidth: "600px" }}
-            className="flex-1 flex flex-col h-full"
-          >
-            <TradingAgentChat
-              messages={messages}
-              inputText={inputText}
-              onInputChange={setInputText}
-              onSend={handleSend}
-              onNewStrategy={handleGoBack}
-            />
-          </motion.div>
-        </motion.div>
-
-        {/* Right Column: Strategy Card */}
-        <AnimatePresence>
-          {isStrategyVisible && (
             <motion.div
-              initial={{ opacity: 0, x: 50 }}
               animate={{
-                opacity: 1,
-                x: 0,
+                x: isInitialized ? "-120%" : 0,
               }}
-              exit={{ opacity: 0, x: 50 }}
               transition={{
                 duration: 0.5,
                 ease: "easeInOut",
               }}
-              className="w-2/3 flex flex-col -ml-16 relative z-0"
+              className="flex-1 flex flex-col h-full w-[30vw] min-w-[450px] max-w-[600px]"
             >
-              <Card className="flex-1 flex flex-col overflow-hidden relative group bg-[#f3f1ed] shadow-lg shadow-stone-300/50">
-                {/* Decorative Top Bar */}
-                <div className="h-1 w-full bg-gradient-to-r from-stone-200 via-amber-400 to-stone-200" />
+              <TradingAgentChat
+                messages={messages}
+                inputText={inputText}
+                onInputChange={setInputText}
+                onSend={handleSend}
+                onNewStrategy={handleGoBack}
+              />
+            </motion.div>
+          </motion.div>
 
-                {/* Back Arrow - Only visible when initialized */}
-                {isInitialized && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.3 }}
-                    className="absolute top-6 left-3 z-20"
-                  >
-                    <Button
-                      isIconOnly
-                      variant="light"
-                      radius="full"
-                      className=" hover:bg-white  text-stone-600 hover:text-stone-900"
-                      onPress={() => setIsInitialized(false)}
+          {/* Right Column: Strategy Card */}
+          <AnimatePresence>
+            {isStrategyVisible && (
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                }}
+                exit={{ opacity: 0, x: 50 }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeInOut",
+                }}
+                className="w-2/3 flex flex-col -ml-16 relative z-0"
+              >
+                <Card className="flex-1 flex flex-col overflow-hidden relative group bg-[#f3f1ed] shadow-lg shadow-stone-300/50">
+                  {/* Decorative Top Bar */}
+                  <div className="h-1 w-full bg-gradient-to-r from-stone-200 via-amber-400 to-stone-200" />
+
+                  {/* Back Arrow - Only visible when initialized */}
+                  {isInitialized && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.3 }}
+                      className="absolute top-6 left-3 z-20"
                     >
-                      <ArrowLeft size={18} />
-                    </Button>
-                  </motion.div>
-                )}
+                      <Button
+                        isIconOnly
+                        variant="light"
+                        radius="full"
+                        className=" hover:bg-white  text-stone-600 hover:text-stone-900"
+                        onPress={() => setIsInitialized(false)}
+                      >
+                        <ArrowLeft size={18} />
+                      </Button>
+                    </motion.div>
+                  )}
 
-                <div
-                  className={`p-8 ${isInitialized ? "pl-16" : "pl-24"} flex-1 flex flex-col relative transition-all duration-500`}
-                >
-                  {/* Header */}
-                  <div className="flex justify-between items-start mb-8">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Chip
-                          variant="flat"
-                          size="sm"
-                          radius="sm"
-                          className="border border-stone-200 bg-transparent"
-                        >
-                          <span className="text-[10px] uppercase tracking-widest text-stone-500">
-                            Proposed Strategy
-                          </span>
-                        </Chip>
-                        {(() => {
-                          const config = detectedArchetype
-                            ? getArchetypeConfig(detectedArchetype)
-                            : null;
-                          if (!config) return null;
-                          const IconComponent = config.icon;
-                          const colors =
-                            getArchetypeColorClasses(detectedArchetype);
-                          return (
-                            <Chip
-                              variant="flat"
-                              size="sm"
-                              radius="sm"
-                              className={`${colors.chipBg} ${colors.chipText} border ${colors.chipBorder}`}
-                              startContent={
-                                IconComponent ? (
-                                  <IconComponent size={10} />
-                                ) : undefined
-                              }
-                            >
-                              <span className="text-[10px] uppercase tracking-widest font-bold">
-                                {config.displayName}
-                              </span>
-                            </Chip>
-                          );
-                        })()}
-                      </div>
-                      <div className="flex items-baseline gap-4 mb-2">
-                        {/* <div className="flex items-center gap-2">
+                  <div
+                    className={`p-8 ${isInitialized ? "pl-16" : "pl-24"} flex-1 flex flex-col relative transition-all duration-500`}
+                  >
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-8">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Chip
+                            variant="flat"
+                            size="sm"
+                            radius="sm"
+                            className="border border-stone-200 bg-transparent"
+                          >
+                            <span className="text-[10px] uppercase tracking-widest text-stone-500">
+                              Proposed Strategy
+                            </span>
+                          </Chip>
+                          {(() => {
+                            const config = detectedArchetype
+                              ? getArchetypeConfig(detectedArchetype)
+                              : null;
+                            if (!config) return null;
+                            const IconComponent = config.icon;
+                            const colors =
+                              getArchetypeColorClasses(detectedArchetype);
+                            return (
+                              <Chip
+                                variant="flat"
+                                size="sm"
+                                radius="sm"
+                                className={`${colors.chipBg} ${colors.chipText} border ${colors.chipBorder}`}
+                                startContent={
+                                  IconComponent ? (
+                                    <IconComponent size={10} />
+                                  ) : undefined
+                                }
+                              >
+                                <span className="text-[10px] uppercase tracking-widest font-bold">
+                                  {config.displayName}
+                                </span>
+                              </Chip>
+                            );
+                          })()}
+                        </div>
+                        <div className="flex items-baseline gap-4 mb-2">
+                          {/* <div className="flex items-center gap-2">
                       <img
                         src={`https://img.logo.dev/${companyName?.toLowerCase().replace(/\s+/g, "") || ticker.toLowerCase()}?token=${process.env.NEXT_PUBLIC_LOGODEV_TOKEN || "pk_RZs6nh7dTBSce8pi4IKWbg"}&size=32&retina=true`}
                         alt={`${companyName || ticker} logo`}
@@ -810,221 +863,223 @@ export function DashboardView({
                         }
                       />
                     </div> */}
-                        <h1 className="text-5xl font-serif text-stone-900 leading-none tracking-tight flex items-center gap-2">
-                          {ticker}
-                          {isConnected && (
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <h1 className="text-5xl font-serif text-stone-900 leading-none tracking-tight flex items-center gap-2">
+                            {ticker}
+                            {isConnected && (
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            )}
+                          </h1>
+                          {isPriceLoading ? (
+                            <Spinner size="sm" color="default" />
+                          ) : (
+                            <>
+                              {stockPrice !== null ? (
+                                <RollingText
+                                  key={stockPrice.toFixed(2)}
+                                  text={`$${stockPrice.toFixed(2)}`}
+                                  className="text-3xl font-mono text-stone-600 tracking-tighter"
+                                  transition={{
+                                    duration: 0.4,
+                                    delay: 0.05,
+                                    ease: "easeOut",
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-3xl font-mono text-stone-600 tracking-tighter">
+                                  —
+                                </span>
+                              )}
+                              {changePercent !== null ? (
+                                <RollingText
+                                  key={changePercent.toFixed(2)}
+                                  text={`${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
+                                  className={`text-sm font-bold px-2.5 py-1 rounded-md border transform -translate-y-1 ${
+                                    changePercent >= 0
+                                      ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+                                      : "text-red-600 bg-red-50 border-red-100"
+                                  }`}
+                                  transition={{
+                                    duration: 0.4,
+                                    delay: 0.05,
+                                    ease: "easeOut",
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-sm font-bold px-2.5 py-1 rounded-md border transform -translate-y-1 text-stone-400 bg-stone-50 border-stone-100">
+                                  —
+                                </span>
+                              )}
+                            </>
                           )}
-                        </h1>
-                        {isPriceLoading ? (
-                          <Spinner size="sm" color="default" />
-                        ) : (
-                          <>
-                            {stockPrice !== null ? (
-                              <RollingText
-                                key={stockPrice.toFixed(2)}
-                                text={`$${stockPrice.toFixed(2)}`}
-                                className="text-3xl font-mono text-stone-600 tracking-tighter"
-                                transition={{
-                                  duration: 0.4,
-                                  delay: 0.05,
-                                  ease: "easeOut",
-                                }}
-                              />
-                            ) : (
-                              <span className="text-3xl font-mono text-stone-600 tracking-tighter">
-                                —
-                              </span>
-                            )}
-                            {changePercent !== null ? (
-                              <RollingText
-                                key={changePercent.toFixed(2)}
-                                text={`${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
-                                className={`text-sm font-bold px-2.5 py-1 rounded-md border transform -translate-y-1 ${
-                                  changePercent >= 0
-                                    ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                                    : "text-red-600 bg-red-50 border-red-100"
-                                }`}
-                                transition={{
-                                  duration: 0.4,
-                                  delay: 0.05,
-                                  ease: "easeOut",
-                                }}
-                              />
-                            ) : (
-                              <span className="text-sm font-bold px-2.5 py-1 rounded-md border transform -translate-y-1 text-stone-400 bg-stone-50 border-stone-100">
-                                —
-                              </span>
-                            )}
-                          </>
-                        )}
+                        </div>
+                        <div className="flex items-center gap-3 ml-1">
+                          <span className="text-xs font-semibold text-stone-400 uppercase tracking-widest">
+                            {companyName}
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-stone-300"></span>
+                          <span className="text-xs font-semibold text-stone-400 uppercase tracking-widest">
+                            Equity
+                          </span>
+                        </div>
+                        <Spacer y={4} />
+                        <div className="flex flex-col gap-4">
+                          {detectedArchetype &&
+                            (() => {
+                              const config =
+                                getArchetypeConfig(detectedArchetype);
+                              if (!config || !config.desc) return null;
+                              return (
+                                <span className="text-lg text-stone-500 italic">
+                                  Trading {companyName} using{" "}
+                                  {config.desc.toLowerCase()}
+                                </span>
+                              );
+                            })()}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 ml-1">
-                        <span className="text-xs font-semibold text-stone-400 uppercase tracking-widest">
-                          {companyName}
-                        </span>
-                        <span className="w-1 h-1 rounded-full bg-stone-300"></span>
-                        <span className="text-xs font-semibold text-stone-400 uppercase tracking-widest">
-                          Equity
-                        </span>
-                      </div>
-                      <Spacer y={4} />
-                      <div className="flex flex-col gap-4">
-                        {detectedArchetype &&
-                          (() => {
-                            const config =
-                              getArchetypeConfig(detectedArchetype);
-                            if (!config || !config.desc) return null;
-                            return (
-                              <span className="text-lg text-stone-500 italic">
-                                Trading {companyName} using{" "}
-                                {config.desc.toLowerCase()}
-                              </span>
-                            );
-                          })()}
+                      <div className="w-12 h-12 rounded-full border border-stone-100 flex items-center justify-center bg-stone-50 text-amber-600 shadow-inner">
+                        <Activity size={24} />
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-full border border-stone-100 flex items-center justify-center bg-stone-50 text-amber-600 shadow-inner">
-                      <Activity size={24} />
-                    </div>
-                  </div>
 
-                  {/* Archetype Visualization */}
-                  {detectedArchetype && (
-                    <div className="w-full h-48 relative mb-8 group/viz flex items-center justify-center overflow-hidden rounded-xl border border-stone-100/50 bg-[#edece8]">
-                      {/* Top label overlay - keeping absolute position */}
-                      <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full animate-pulse ${getArchetypeColorClasses(detectedArchetype).dot}`}
-                        />
-                        <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest">
-                          Logic:{" "}
-                          {getArchetypeConfig(detectedArchetype)?.displayName}
-                        </span>
+                    {/* Archetype Visualization */}
+                    {detectedArchetype && (
+                      <div className="w-full h-48 relative mb-8 group/viz flex items-center justify-center overflow-hidden rounded-xl border border-stone-100/50 bg-[#edece8]">
+                        {/* Top label overlay - keeping absolute position */}
+                        <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full animate-pulse ${getArchetypeColorClasses(detectedArchetype).dot}`}
+                          />
+                          <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest">
+                            Logic:{" "}
+                            {getArchetypeConfig(detectedArchetype)?.displayName}
+                          </span>
+                        </div>
+
+                        {/* Info button - top right */}
+                        <Button className="absolute top-4 right-4 isIconOnly h-6 rounded-full bg-[#edece8]  flex items-center justify-center">
+                          <Info size={14} className="text-stone-500" />
+                        </Button>
+
+                        <motion.div
+                          key={detectedArchetype}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.4 }}
+                          className="w-full h-full flex items-center justify-center transform transition-transform duration-500 group-hover/viz:scale-105"
+                        >
+                          <StrategyVisualizer
+                            type={detectedArchetype}
+                            variant="dark"
+                            useCustomData={ENABLE_AGENT_VISUALIZATION}
+                            data={mockVisualizationData}
+                            runOnLoad={true}
+                          />
+                        </motion.div>
                       </div>
+                    )}
 
-                      {/* Info button - top right */}
-                      <Button className="absolute top-4 right-4 isIconOnly h-6 rounded-full bg-[#edece8]  flex items-center justify-center">
-                        <Info size={14} className="text-stone-500" />
-                      </Button>
-
-                      <motion.div
-                        key={detectedArchetype}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.4 }}
-                        className="w-full h-full flex items-center justify-center transform transition-transform duration-500 group-hover/viz:scale-105"
-                      >
-                        <StrategyVisualizer
-                          type={detectedArchetype}
-                          variant="dark"
-                          useCustomData={ENABLE_AGENT_VISUALIZATION}
-                          data={mockVisualizationData}
-                        />
-                      </motion.div>
-                    </div>
-                  )}
-
-                  {/* <StrategyInfoSection
+                    {/* <StrategyInfoSection
                 ticker={ticker}
                 companyName={companyName}
                 stockPrice={stockPrice}
                 archetype={detectedArchetype}
               /> */}
-                  {/* --- Logic Pipeline (Buy/Sell Split) --- */}
-                  <div className="mb-2">
-                    <div className="flex flex-row gap-4 items-stretch">
-                      {/* BUY SIDE */}
-                      <div className="flex-1 bg-[#edece8] p-5 rounded-xl border border-stone-200/60 relative group hover:border-emerald-300/50 transition-all shadow-sm flex flex-col justify-center">
-                        <div className="absolute -top-3 left-4 bg-white px-2 py-0.5 rounded border border-stone-200 text-[9px] font-bold tracking-widest text-emerald-600 uppercase shadow-sm flex items-center gap-1">
-                          <Check size={10} /> Buying Conditions
-                        </div>
+                    {/* --- Logic Pipeline (Buy/Sell Split) --- */}
+                    <div className="mb-2">
+                      <div className="flex flex-col md:flex-row gap-4 items-stretch">
+                        {/* BUY SIDE */}
+                        <div className="flex-1 bg-[#edece8] p-5 rounded-xl border border-stone-200/60 relative group hover:border-emerald-300/50 transition-all shadow-sm flex flex-col justify-center">
+                          <div className="absolute -top-3 left-4 bg-white px-2 py-0.5 rounded border border-stone-200 text-[9px] font-bold tracking-widest text-emerald-600 uppercase shadow-sm flex items-center gap-1">
+                            <Check size={10} /> Buying Conditions
+                          </div>
 
-                        {/* Condition 1 */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-1.5 rounded-full bg-stone-300 group-hover:bg-emerald-500 transition-colors" />
-                          <div>
-                            <h4 className="font-serif text-lg text-stone-800 leading-none">
-                              {currentLogic.buy[0].value}
-                            </h4>
-                            <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wider">
-                              {currentLogic.buy[0].label}
+                          {/* Condition 1 */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-1.5 rounded-full bg-stone-300 group-hover:bg-emerald-500 transition-colors" />
+                            <div>
+                              <h4 className="font-serif text-lg text-stone-800 leading-none">
+                                {currentLogic.buy[0].value}
+                              </h4>
+                              <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wider">
+                                {currentLogic.buy[0].label}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* AND Connector */}
+                          <div className="ml-0.5 pl-3 border-l border-dashed border-stone-300 my-1 py-1">
+                            <span className="text-[9px] text-stone-400 font-bold bg-[#edece8] px-1 -ml-1.5">
+                              AND
                             </span>
+                          </div>
+
+                          {/* Condition 2 */}
+                          <div className="flex items-center gap-3 mt-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-stone-300 group-hover:bg-emerald-500 transition-colors" />
+                            <div>
+                              <h4 className="font-serif text-lg text-stone-800 leading-none">
+                                {currentLogic.buy[1].value}
+                              </h4>
+                              <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wider">
+                                {currentLogic.buy[1].label}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* AND Connector */}
-                        <div className="ml-0.5 pl-3 border-l border-dashed border-stone-300 my-1 py-1">
-                          <span className="text-[9px] text-stone-400 font-bold bg-[#edece8] px-1 -ml-1.5">
-                            AND
-                          </span>
-                        </div>
-
-                        {/* Condition 2 */}
-                        <div className="flex items-center gap-3 mt-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-stone-300 group-hover:bg-emerald-500 transition-colors" />
-                          <div>
-                            <h4 className="font-serif text-lg text-stone-800 leading-none">
-                              {currentLogic.buy[1].value}
-                            </h4>
-                            <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wider">
-                              {currentLogic.buy[1].label}
-                            </span>
+                        {/* CENTER DIVIDER */}
+                        <div className="flex-shrink-0 flex md:flex-col items-center justify-center relative py-2 md:py-0 my-0 md:my-4">
+                          <div className="w-full h-px md:w-px md:h-full bg-stone-300/50 absolute top-1/2 left-0 md:top-0 md:left-1/2 -translate-y-1/2 md:translate-y-0 md:-translate-x-1/2" />
+                          <div className="relative p-1 bg-[#f3f1ed] text-stone-300 border border-stone-200 rounded-full z-10">
+                            <Zap size={12} />
                           </div>
                         </div>
-                      </div>
 
-                      {/* CENTER DIVIDER */}
-                      <div className="flex-shrink-0 flex flex-col items-center justify-center w-px bg-stone-300/50 my-4 relative">
-                        <div className="absolute p-1 bg-[#f3f1ed] text-stone-300 border border-stone-200 rounded-full">
-                          <Zap size={12} />
-                        </div>
-                      </div>
-
-                      {/* SELL SIDE */}
-                      <div className="flex-1 bg-[#edece8] p-5 rounded-xl border border-stone-200/60 relative group hover:border-red-300/50 transition-all shadow-sm flex flex-col justify-center">
-                        <div className="absolute -top-3 left-4 bg-white px-2 py-0.5 rounded border border-stone-200 text-[9px] font-bold tracking-widest text-red-400 uppercase shadow-sm flex items-center gap-1">
-                          <DollarSign size={10} className="text-red-400" />{" "}
-                          Selling Conditions
-                        </div>
-
-                        {/* Stop Loss */}
-                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-stone-200/50">
-                          <div>
-                            <h4 className="font-serif text-lg text-stone-800 leading-none">
-                              {currentLogic.sell[0].value}
-                            </h4>
-                            <span className="text-[10px] text-red-400 font-medium uppercase tracking-wider">
-                              {currentLogic.sell[0].label}
-                            </span>
+                        {/* SELL SIDE */}
+                        <div className="flex-1 bg-[#edece8] p-5 rounded-xl border border-stone-200/60 relative group hover:border-red-300/50 transition-all shadow-sm flex flex-col justify-center">
+                          <div className="absolute -top-3 left-4 bg-white px-2 py-0.5 rounded border border-stone-200 text-[9px] font-bold tracking-widest text-red-400 uppercase shadow-sm flex items-center gap-1">
+                            <DollarSign size={10} className="text-red-400" />{" "}
+                            Selling Conditions
                           </div>
-                          <AlertTriangle
-                            size={14}
-                            className="text-stone-300 group-hover:text-red-400 transition-colors"
-                          />
-                        </div>
 
-                        {/* Target */}
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-serif text-lg text-stone-800 leading-none">
-                              {currentLogic.sell[1].value}
-                            </h4>
-                            <span className="text-[10px] text-blue-400 font-medium uppercase tracking-wider">
-                              {currentLogic.sell[1].label}
-                            </span>
+                          {/* Stop Loss */}
+                          <div className="flex items-center justify-between mb-4 pb-4 border-b border-stone-200/50">
+                            <div>
+                              <h4 className="font-serif text-lg text-stone-800 leading-none">
+                                {currentLogic.sell[0].value}
+                              </h4>
+                              <span className="text-[10px] text-red-400 font-medium uppercase tracking-wider">
+                                {currentLogic.sell[0].label}
+                              </span>
+                            </div>
+                            <AlertTriangle
+                              size={14}
+                              className="text-stone-300 group-hover:text-red-400 transition-colors"
+                            />
                           </div>
-                          <Clock
-                            size={14}
-                            className="text-stone-300 group-hover:text-blue-400 transition-colors"
-                          />
+
+                          {/* Target */}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-serif text-lg text-stone-800 leading-none">
+                                {currentLogic.sell[1].value}
+                              </h4>
+                              <span className="text-[10px] text-blue-400 font-medium uppercase tracking-wider">
+                                {currentLogic.sell[1].label}
+                              </span>
+                            </div>
+                            <Clock
+                              size={14}
+                              className="text-stone-300 group-hover:text-blue-400 transition-colors"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Main Visualization Placeholder */}
-                  {/* <div className="flex-1 rounded-lg bg-stone-900 relative overflow-hidden flex items-end justify-center mb-8 shadow-inner group/chart min-h-[300px]">
+                    {/* Main Visualization Placeholder */}
+                    {/* <div className="flex-1 rounded-lg bg-stone-900 relative overflow-hidden flex items-end justify-center mb-8 shadow-inner group/chart min-h-[300px]">
                 <svg
                   className="w-full h-full absolute inset-0 text-amber-500/20"
                   preserveAspectRatio="none"
@@ -1085,62 +1140,63 @@ export function DashboardView({
               </div>
               */}
 
-                  {/* Footer / Actions */}
-                  <div className="mt-auto flex justify-between items-center pt-6 border-t border-stone-100">
-                    <div className="flex gap-4 text-xs text-stone-400 font-medium tracking-wider uppercase">
-                      <span className="hover:text-stone-800 cursor-pointer transition-colors">
-                        Risk Parameters
-                      </span>
-                      <span className="hover:text-stone-800 cursor-pointer transition-colors">
-                        Exchanges
-                      </span>
-                      <span className="hover:text-stone-800 cursor-pointer transition-colors">
-                        API Keys
-                      </span>
+                    {/* Footer / Actions */}
+                    <div className="mt-auto flex flex-col md:flex-row justify-between items-center pt-6 border-t border-stone-100 gap-4 md:gap-0">
+                      <div className="flex gap-4 text-xs text-stone-400 font-medium tracking-wider uppercase order-2 md:order-1">
+                        <span className="hover:text-stone-800 cursor-pointer transition-colors">
+                          Risk Parameters
+                        </span>
+                        <span className="hover:text-stone-800 cursor-pointer transition-colors">
+                          Exchanges
+                        </span>
+                        <span className="hover:text-stone-800 cursor-pointer transition-colors">
+                          API Keys
+                        </span>
+                      </div>
+                      <Button
+                        className={`w-full md:w-auto px-8 py-3 bg-stone-900 text-white hover:bg-amber-600 transition-all duration-300 shadow-lg shadow-amber-900/10 order-1 md:order-2 ${
+                          isInitialized
+                            ? "opacity-0 pointer-events-none"
+                            : "opacity-100"
+                        }`}
+                        radius="lg"
+                        size="lg"
+                        endContent={<ArrowRight size={14} />}
+                        onPress={() => setIsInitialized(true)}
+                      >
+                        Initialize Strategy
+                      </Button>
                     </div>
-                    <Button
-                      className={`px-8 py-3 bg-stone-900 text-white hover:bg-amber-600 transition-all duration-300 shadow-lg shadow-amber-900/10 ${
-                        isInitialized
-                          ? "opacity-0 pointer-events-none"
-                          : "opacity-100"
-                      }`}
-                      radius="lg"
-                      size="lg"
-                      endContent={<ArrowRight size={14} />}
-                      onPress={() => setIsInitialized(true)}
-                    >
-                      Initialize Strategy
-                    </Button>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Strategy Confirmation Panel: Slides in/out from right - only rendered when initialized */}
+        <AnimatePresence mode="sync">
+          {isInitialized && (
+            <motion.div
+              key="confirmation-panel"
+              initial={{ x: "120%" }}
+              animate={{ x: 0 }}
+              exit={{
+                x: "120%",
+                transition: { duration: 0.5, ease: "easeInOut" },
+              }}
+              transition={{
+                duration: 0.5,
+                ease: "easeInOut",
+              }}
+              className="absolute top-24 right-8 bottom-8 z-20 flex flex-col pt-8"
+              style={{ width: "calc(33.333% - 24px)" }}
+            >
+              <StrategyConfirmationPanel />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* Strategy Confirmation Panel: Slides in/out from right - only rendered when initialized */}
-      <AnimatePresence mode="sync">
-        {isInitialized && (
-          <motion.div
-            key="confirmation-panel"
-            initial={{ x: "120%" }}
-            animate={{ x: 0 }}
-            exit={{
-              x: "120%",
-              transition: { duration: 0.5, ease: "easeInOut" },
-            }}
-            transition={{
-              duration: 0.5,
-              ease: "easeInOut",
-            }}
-            className="absolute top-24 right-8 bottom-8 z-20 flex flex-col pt-8"
-            style={{ width: "calc(33.333% - 24px)" }}
-          >
-            <StrategyConfirmationPanel />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

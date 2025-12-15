@@ -381,7 +381,14 @@ const MainContent = () => {
   }
 
   return (
-    <div className="w-screen h-screen overflow-hidden bg-black font-sans">
+    <div
+      className="w-screen h-[100dvh] overflow-hidden font-sans"
+      style={{
+        backgroundColor: "transparent",
+        maxHeight: "100dvh",
+        overscrollBehavior: "none",
+      }}
+    >
       <AnimatePresence mode="wait" custom={targetView}>
         {/* CHANGE: Conditional landing page rendering - key changes based on alt version */}
         {view === "landing" && (
