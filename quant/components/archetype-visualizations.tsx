@@ -62,8 +62,15 @@ export function StrategyVisualizer({
   useEffect(() => {
     if (runOnLoad) {
       setAnimationState("active");
+      if (!loop) {
+        // Reset to static after animation completes to allow hover re-trigger
+        const timer = setTimeout(() => {
+          setAnimationState("static");
+        }, 4000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [runOnLoad]);
+  }, [runOnLoad, loop]);
 
   useEffect(() => {
     if (loop) {
@@ -338,7 +345,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <motion.path
             variants={pathVariants}
@@ -421,7 +428,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <motion.path
             variants={pathVariants}
@@ -594,7 +601,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Dynamic Calendar Grid */}
           <g>
@@ -696,7 +703,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Reference line showing original price level */}
           <line
@@ -796,7 +803,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Reference line showing original price level */}
           <line
@@ -890,7 +897,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <line
             x1="20"
@@ -939,7 +946,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Limit line at the TOP */}
           <line
@@ -1012,7 +1019,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Volume Bars - animate upward from bottom on hover */}
           <g transform="translate(0, 100)">
@@ -1083,7 +1090,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Volume Bars - spike pattern */}
           <g transform="translate(0, 100)">
@@ -1152,7 +1159,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Volume Bars - higher average with a dip */}
           <g transform="translate(0, 100)">
@@ -1221,7 +1228,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Volume Bars - higher average with a dip */}
           <g transform="translate(0, 100)">
@@ -1268,7 +1275,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Trend Line (Green) */}
           <motion.path
@@ -1320,7 +1327,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Trailing Stop Line */}
           <motion.path
@@ -1379,7 +1386,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Trailing Stop Line */}
           <motion.path
@@ -1420,7 +1427,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Trailing Buy Line - follows price down */}
           <motion.path
@@ -1481,7 +1488,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Trailing Limit Line - resistance above price */}
           <motion.path
@@ -1610,7 +1617,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <motion.path
             variants={pathVariants}
@@ -1682,7 +1689,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <line
             x1="50"
@@ -1722,7 +1729,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Downtrend guide line - from top-left to bottom-right */}
           <line
@@ -1783,7 +1790,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <g stroke={colors.gridLine} strokeWidth="1">
             <line x1="0" y1="30" x2="400" y2="30" strokeDasharray="4 4" />
@@ -1825,7 +1832,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Range bands */}
           <g stroke={colors.gridLine} strokeWidth="1">
@@ -1888,7 +1895,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <line
             x1="0"
@@ -1948,7 +1955,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Support line */}
           <line
@@ -2029,7 +2036,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <motion.path
             variants={pathVariants}
@@ -2071,7 +2078,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Price trending DOWN with flag consolidation */}
           <motion.path
@@ -2148,7 +2155,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <motion.path
             variants={pathVariants}
@@ -2218,7 +2225,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Amber line goes UP (flipped) */}
           <motion.path
@@ -2277,7 +2284,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <line
             x1="20"
@@ -2355,7 +2362,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Downtrend guide line - from top-left to bottom-right */}
           <line
@@ -2436,7 +2443,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <path
             d="M 20 50 Q 150 70 200 75 Q 300 70 380 20"
@@ -2496,7 +2503,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Squeeze bands - same shape */}
           <path
@@ -2590,7 +2597,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <motion.path
             variants={pathVariants}
@@ -2669,7 +2676,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Orange line (was secondary/gray) - Lead indicator */}
           <motion.path
@@ -2737,7 +2744,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <path
             d="M 20 140 Q 100 100 200 90 T 380 60"
@@ -2782,7 +2789,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* VWAP line flipped - curves downward from top */}
           <path
@@ -2842,7 +2849,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Animated vertical catalyst line */}
           <motion.path
@@ -2898,7 +2905,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Catalyst line - unchanged */}
           <motion.path
@@ -2941,7 +2948,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <line
             x1="20"
@@ -3010,7 +3017,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Previous day close - at top */}
           <line
@@ -3082,7 +3089,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           {/* Support Line */}
           <line
@@ -3137,7 +3144,7 @@ export function StrategyVisualizer({
           className="w-full max-w-lg h-40 overflow-visible z-10"
           initial="static"
           animate={animationState}
-          whileHover={!runOnLoad && !loop ? "active" : undefined}
+          whileHover={!loop ? "active" : undefined}
         >
           <line
             x1="50"
