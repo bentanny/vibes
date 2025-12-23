@@ -4,16 +4,21 @@
  * GET /api/snaptrade/brokerages - Get list of supported brokerages
  */
 
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
 import { getBrokerages } from "@/lib/snaptrade";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }

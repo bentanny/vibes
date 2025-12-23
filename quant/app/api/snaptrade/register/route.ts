@@ -7,10 +7,9 @@
  * These credentials are stored in cookies for subsequent API calls.
  */
 
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
 import { registerSnapTradeUser } from "@/lib/snaptrade";
 
 // Encrypt credentials for cookie storage
@@ -19,11 +18,16 @@ function encryptCredentials(userId: string, userSecret: string): string {
   return Buffer.from(data).toString("base64");
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session?.user?.email) {
+    if (!user?.email) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }
@@ -31,7 +35,7 @@ export async function POST() {
     }
 
     // Use the user's email as a unique identifier
-    const uniqueId = `quant_${session.user.email.replace(/[^a-zA-Z0-9]/g, "_")}`;
+    const uniqueId = `quant_${user.email.replace(/[^a-zA-Z0-9]/g, "_")}`;
 
     // Register the user with SnapTrade
     const snapTradeUser = await registerSnapTradeUser(uniqueId);

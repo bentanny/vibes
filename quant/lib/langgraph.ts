@@ -1,4 +1,8 @@
-export const LANGGRAPH_API_URL = "https://vibe-trade-agent-kff5sbwvca-uc.a.run.app";
+import { auth } from "./firebase";
+
+export const LANGGRAPH_API_URL = 
+  process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || 
+  "https://vibe-trade-agent-kff5sbwvca-uc.a.run.app";
 
 export interface LangGraphConfig {
   threadId: string;
@@ -15,23 +19,56 @@ export async function* streamRun(
   const finalAssistantId = assistantId && assistantId.trim() !== "" ? assistantId : "agent";
   console.log("StreamRun Config:", { threadId, assistantId, finalAssistantId });
 
+  // Get LangSmith API key from environment (build-time variable) - REQUIRED
+  const langsmithApiKey = process.env.NEXT_PUBLIC_LANGSMITH_API_KEY;
+  
+  if (!langsmithApiKey) {
+    throw new Error("NEXT_PUBLIC_LANGSMITH_API_KEY is not configured");
+  }
+
+  // Get Firebase ID token if user is logged in (OPTIONAL - for user identification)
+  const user = auth.currentUser;
+  let idToken: string | null = null;
+  
+  if (user) {
+    try {
+      idToken = await user.getIdToken();
+    } catch (error) {
+      console.error("Failed to get Firebase ID token for LangGraph API:", error);
+      // Don't fail - Firebase token is optional
+    }
+  }
+
+  // Get user ID if logged in (for passing in config as fallback)
+  const userId = user?.uid || null;
+
   const body: Record<string, any> = {
     assistant_id: finalAssistantId,
     input,
     config: {
       configurable: {
         thread_id: threadId,
+        // Pass user_id in config as fallback (in case headers aren't available)
+        ...(userId ? { user_id: userId } : {}),
       },
     },
     stream_mode: ["values"],
     if_not_exists: "create",
   };
 
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    "X-Api-Key": langsmithApiKey, // Required for LangGraph authentication
+  };
+
+  // Optionally add Firebase token for user identification (if logged in)
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
   const response = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
 

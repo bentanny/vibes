@@ -8,9 +8,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
 import { getConnectionPortalUrl, registerSnapTradeUser } from "@/lib/snaptrade";
 
 function decryptCredentials(encrypted: string): { userId: string; userSecret: string } | null {
@@ -29,9 +28,14 @@ function encryptCredentials(userId: string, userSecret: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session?.user?.email) {
+    if (!user?.email) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }
@@ -41,7 +45,7 @@ export async function GET(request: NextRequest) {
     // Get optional parameters
     const { searchParams } = new URL(request.url);
     const broker = searchParams.get("broker") || undefined;
-    const redirectUrl = searchParams.get("redirect") || `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/settings?connected=true`;
+    const redirectUrl = searchParams.get("redirect") || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/settings?connected=true`;
 
     // Get or create SnapTrade credentials
     const cookieStore = await cookies();
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     // If no credentials, register the user first
     if (!credentials) {
-      const uniqueId = `quant_${session.user.email.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      const uniqueId = `quant_${user.email.replace(/[^a-zA-Z0-9]/g, "_")}`;
       
       try {
         const snapTradeUser = await registerSnapTradeUser(uniqueId);

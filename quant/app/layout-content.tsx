@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { PageNavbar } from "@/components/page-navbar";
+import { FirebaseDiagnostics } from "@/components/firebase-diagnostics";
 
 export function LayoutContent({ children }: { children: ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export function LayoutContent({ children }: { children: ReactNode }) {
       >
         {children}
       </main>
+      <FirebaseDiagnostics />
     </div>
   );
 }

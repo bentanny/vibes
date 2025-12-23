@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 
 export interface SnapTradeAccount {
   id: string;

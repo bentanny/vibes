@@ -15,8 +15,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
 import { CoinbaseClient } from "@/lib/coinbase";
 
 interface TradeRequest {
@@ -30,16 +30,26 @@ interface TradeRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
-    if (!session.coinbase?.accessToken) {
+    // TODO: Get Coinbase access token from Firestore or secure storage
+    // For now, check cookies for Coinbase token (temporary solution)
+    const cookieStore = await cookies();
+    const coinbaseToken = cookieStore.get("coinbase_access_token")?.value;
+
+    if (!coinbaseToken) {
       return NextResponse.json(
         { error: "Coinbase not connected - Please link your Coinbase account" },
         { status: 403 }
@@ -73,7 +83,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = new CoinbaseClient(session.coinbase.accessToken);
+    const client = new CoinbaseClient(coinbaseToken);
 
     let order;
     if (action === "buy") {
@@ -156,16 +166,25 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
-    if (!session.coinbase?.accessToken) {
+    // TODO: Get Coinbase access token from Firestore or secure storage
+    const cookieStore = await cookies();
+    const coinbaseToken = cookieStore.get("coinbase_access_token")?.value;
+
+    if (!coinbaseToken) {
       return NextResponse.json(
         { error: "Coinbase not connected" },
         { status: 403 }
@@ -182,7 +201,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const client = new CoinbaseClient(session.coinbase.accessToken);
+    const client = new CoinbaseClient(coinbaseToken);
 
     let order;
     if (action === "buy") {
