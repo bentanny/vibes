@@ -39,12 +39,17 @@ export async function* streamRun(
     }
   }
 
+  // Get user ID if logged in (for passing in config as fallback)
+  const userId = user?.uid || null;
+
   const body: Record<string, any> = {
     assistant_id: finalAssistantId,
     input,
     config: {
       configurable: {
         thread_id: threadId,
+        // Pass user_id in config as fallback (in case headers aren't available)
+        ...(userId ? { user_id: userId } : {}),
       },
     },
     stream_mode: ["values"],
