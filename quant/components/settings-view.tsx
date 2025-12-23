@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { signOut, useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/auth-context";
+import { useSession } from "@/contexts/auth-context";
 import { Card } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Switch } from "@heroui/switch";
@@ -107,8 +108,10 @@ export function SettingsView({ onGoHome }: SettingsViewProps) {
     weeklyReports: true,
   });
 
+  const { signOut } = useAuth();
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/" });
+    await signOut();
+    window.location.href = "/";
   };
 
   // Calculate total Coinbase portfolio value

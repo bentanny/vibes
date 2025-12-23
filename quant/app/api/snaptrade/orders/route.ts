@@ -6,9 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
 import { getOrderHistory, cancelOrder } from "@/lib/snaptrade";
 
 function decryptCredentials(encrypted: string): { userId: string; userSecret: string } | null {
@@ -22,9 +21,14 @@ function decryptCredentials(encrypted: string): { userId: string; userSecret: st
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }
@@ -85,9 +89,14 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }

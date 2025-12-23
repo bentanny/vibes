@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { Avatar } from "@heroui/avatar";
 import { Button } from "@heroui/button";
 import { Logo } from "@/components/icons";

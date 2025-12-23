@@ -7,7 +7,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { useSession, useAuth } from "@/contexts/auth-context";
 import { Card } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
@@ -564,30 +564,25 @@ export const StrategyConfirmationPanel = forwardRef<
       }
     };
 
+    const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+    
     const handleGoogleSignIn = async () => {
-      // TODO: Remove this bypass after testing - just proceed to next state
-      if (tradingMode === "real") {
-        setPanelState("select-broker");
-      } else if (tradingMode === "paper") {
-        if (onPaperTrade) {
-          onPaperTrade();
+      setIsGoogleLoading(true);
+      setSignInError(null);
+      try {
+        await signInWithGoogle();
+        // After successful sign-in, proceed to next state
+        if (tradingMode === "real") {
+          setPanelState("select-broker");
+        } else if (tradingMode === "paper") {
+          if (onPaperTrade) {
+            onPaperTrade();
+          }
         }
+      } catch {
+        setSignInError("Failed to sign in with Google. Please try again.");
+        setIsGoogleLoading(false);
       }
-      return;
-
-      // Real Google sign-in logic (commented out for testing)
-      /*
-    setIsGoogleLoading(true);
-    setSignInError(null);
-    try {
-      await signIn("google", {
-        callbackUrl: window.location.href,
-      });
-    } catch {
-      setSignInError("Failed to sign in with Google. Please try again.");
-      setIsGoogleLoading(false);
-    }
-    */
     };
 
     const handleAppleSignIn = async () => {
@@ -604,37 +599,22 @@ export const StrategyConfirmationPanel = forwardRef<
     const handleEmailSignIn = async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // TODO: Remove this bypass after testing - just proceed to next state
-      if (tradingMode === "real") {
-        setPanelState("select-broker");
-      } else if (tradingMode === "paper") {
-        if (onPaperTrade) {
-          onPaperTrade();
-        }
+      if (!email || !password) {
+        setSignInError("Please enter both email and password.");
+        return;
       }
-      return;
 
-      // Real sign-in logic (commented out for testing)
-      /*
-    if (!email || !password) {
-      setSignInError("Please enter both email and password.");
-      return;
-    }
+      setIsEmailLoading(true);
+      setSignInError(null);
 
-    setIsEmailLoading(true);
-    setSignInError(null);
-
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setSignInError("Invalid email or password. Please try again.");
-        setIsEmailLoading(false);
-      } else if (result?.ok) {
+      try {
+        const isSignUp = selectedTab === "signup";
+        if (isSignUp) {
+          await signUpWithEmail(email, password);
+        } else {
+          await signInWithEmail(email, password);
+        }
+        
         // After successful sign-in, proceed based on trading mode
         if (tradingMode === "real") {
           setPanelState("select-broker");
@@ -643,14 +623,22 @@ export const StrategyConfirmationPanel = forwardRef<
             onPaperTrade();
           }
         }
-        // Optionally refresh to update session state
-        window.location.reload();
+      } catch (err: any) {
+        const errorMessage =
+          err.code === "auth/user-not-found"
+            ? "No account found with this email."
+            : err.code === "auth/wrong-password"
+            ? "Incorrect password. Please try again."
+            : err.code === "auth/email-already-in-use"
+            ? "An account with this email already exists."
+            : err.code === "auth/weak-password"
+            ? "Password should be at least 6 characters."
+            : err.code === "auth/invalid-email"
+            ? "Invalid email address."
+            : "An error occurred. Please try again.";
+        setSignInError(errorMessage);
+        setIsEmailLoading(false);
       }
-    } catch {
-      setSignInError("An error occurred. Please try again.");
-      setIsEmailLoading(false);
-    }
-    */
     };
 
     const brokerConfig = selectedBroker ? BROKER_CONFIG[selectedBroker] : null;

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import {
   ArrowRight,
   ArrowLeft,

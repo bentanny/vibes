@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { useSession, useAuth } from "@/contexts/auth-context";
 
 export interface CoinbaseAccount {
   id: string;
@@ -70,17 +70,17 @@ export function useCoinbase() {
   const [paymentMethods, setPaymentMethods] = useState<CoinbasePaymentMethod[]>([]);
 
   // Check if Coinbase is connected
-  const isConnected = !!session?.coinbase?.connected;
+  // TODO: Update this to check Firebase Auth or localStorage for Coinbase tokens
+  const isConnected = false; // Temporarily disabled until Coinbase OAuth is re-implemented
 
   // Connect to Coinbase (initiates OAuth flow)
   const connect = useCallback(async () => {
     setError(null);
     try {
-      // This will redirect to Coinbase OAuth
-      await signIn("coinbase", {
-        callbackUrl: window.location.href,
-        redirect: true,
-      });
+      // TODO: Implement Coinbase OAuth flow with Firebase Auth
+      // For now, redirect to Coinbase OAuth URL manually
+      const coinbaseAuthUrl = `https://www.coinbase.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_COINBASE_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin + "/api/coinbase/callback")}&response_type=code&scope=wallet:accounts:read,wallet:transactions:read,wallet:user:read`;
+      window.location.href = coinbaseAuthUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect to Coinbase");
     }

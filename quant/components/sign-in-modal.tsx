@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { signIn } from "next-auth/react";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Modal,
   ModalContent,
@@ -23,11 +23,13 @@ interface SignInModalProps {
 }
 
 export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,11 +40,28 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
     setIsGoogleLoading(true);
     setError(null);
     try {
-      await signIn("google", {
-        callbackUrl: window.location.href,
-      });
-    } catch {
-      setError("Failed to sign in with Google. Please try again.");
+      await signInWithGoogle();
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error("Google sign-in error:", err);
+      
+      // Don't show error if user closed the popup
+      if (err.code === "auth/popup-closed-by-user") {
+        setIsGoogleLoading(false);
+        return;
+      }
+      
+      const errorMessage =
+        err.code === "auth/popup-blocked"
+          ? "Popup was blocked. Please allow popups for this site and try again."
+          : err.code === "auth/unauthorized-domain"
+          ? "This domain is not authorized. Please add localhost to authorized domains in Firebase Console."
+          : err.code === "auth/operation-not-allowed"
+          ? "Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method."
+          : err.message?.includes("Firebase is not configured")
+          ? "Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* environment variables in .env.local"
+          : err.message || "Failed to sign in with Google. Please check the console for details.";
+      setError(errorMessage);
       setIsGoogleLoading(false);
     }
   };
@@ -58,22 +77,26 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
     setError(null);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Invalid email or password. Please try again.");
-        setIsEmailLoading(false);
-      } else if (result?.ok) {
-        onOpenChange(false);
-        // Optionally refresh the page to update session state
-        window.location.reload();
+      if (isSignUp) {
+        await signUpWithEmail(email, password);
+      } else {
+        await signInWithEmail(email, password);
       }
-    } catch {
-      setError("An error occurred. Please try again.");
+      onOpenChange(false);
+    } catch (err: any) {
+      const errorMessage =
+        err.code === "auth/user-not-found"
+          ? "No account found with this email."
+          : err.code === "auth/wrong-password"
+          ? "Incorrect password. Please try again."
+          : err.code === "auth/email-already-in-use"
+          ? "An account with this email already exists."
+          : err.code === "auth/weak-password"
+          ? "Password should be at least 6 characters."
+          : err.code === "auth/invalid-email"
+          ? "Invalid email address."
+          : "An error occurred. Please try again.";
+      setError(errorMessage);
       setIsEmailLoading(false);
     }
   };
@@ -280,7 +303,7 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
                     isDisabled={isLoading}
                   >
                     <span className="text-sm font-medium uppercase tracking-wider">
-                      Sign In
+                      {isSignUp ? "Sign Up" : "Sign In"}
                     </span>
                   </Button>
                   <p className="text-[10px] text-stone-400 text-center uppercase tracking-wider">
@@ -299,9 +322,15 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
               >
                 <Sparkles size={12} className="text-amber-500" />
                 <span>
-                  Don&apos;t have an account?{" "}
-                  <button className="text-amber-600 hover:text-amber-700 font-semibold transition-colors">
-                    Create one
+                  {isSignUp ? "Already have an account? " : "Don't have an account? "}
+                  <button
+                    onClick={() => {
+                      setIsSignUp(!isSignUp);
+                      setError(null);
+                    }}
+                    className="text-amber-600 hover:text-amber-700 font-semibold transition-colors"
+                  >
+                    {isSignUp ? "Sign in" : "Create one"}
                   </button>
                 </span>
               </motion.div>

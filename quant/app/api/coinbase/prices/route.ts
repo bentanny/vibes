@@ -5,22 +5,31 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
 import { CoinbaseClient } from "@/lib/coinbase";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Verify Firebase Auth
+    let user = await getFirebaseUser(request);
+    if (!user) {
+      const cookieStore = await cookies();
+      user = await getFirebaseUserFromCookies(cookieStore);
+    }
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
-    if (!session.coinbase?.accessToken) {
+    // Get Coinbase access token from cookies
+    const cookieStore = await cookies();
+    const coinbaseToken = cookieStore.get("coinbase_access_token")?.value;
+
+    if (!coinbaseToken) {
       return NextResponse.json(
         { error: "Coinbase not connected - Please link your Coinbase account" },
         { status: 403 }
@@ -31,7 +40,7 @@ export async function GET(request: NextRequest) {
     const pairsParam = searchParams.get("pairs") || "BTC-USD,ETH-USD";
     const pairs = pairsParam.split(",").map((p) => p.trim());
 
-    const client = new CoinbaseClient(session.coinbase.accessToken);
+    const client = new CoinbaseClient(coinbaseToken);
 
     // Fetch prices for all requested pairs in parallel
     const pricePromises = pairs.map(async (pair) => {
