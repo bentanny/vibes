@@ -1,4 +1,6 @@
-export const LANGGRAPH_API_URL = "https://vibe-trade-agent-kff5sbwvca-uc.a.run.app";
+export const LANGGRAPH_API_URL = 
+  process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || 
+  "https://vibe-trade-agent-kff5sbwvca-uc.a.run.app";
 
 export interface LangGraphConfig {
   threadId: string;

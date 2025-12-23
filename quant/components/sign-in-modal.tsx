@@ -55,11 +55,11 @@ export function SignInModal({ isOpen, onOpenChange }: SignInModalProps) {
         err.code === "auth/popup-blocked"
           ? "Popup was blocked. Please allow popups for this site and try again."
           : err.code === "auth/unauthorized-domain"
-          ? "This domain is not authorized. Please add localhost to authorized domains in Firebase Console."
+          ? `This domain is not authorized. Please add ${window.location.hostname} to authorized domains in Firebase Console → Authentication → Settings → Authorized domains.`
           : err.code === "auth/operation-not-allowed"
           ? "Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method."
           : err.message?.includes("Firebase is not configured")
-          ? "Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* environment variables in .env.local"
+          ? "Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* environment variables."
           : err.message || "Failed to sign in with Google. Please check the console for details.";
       setError(errorMessage);
       setIsGoogleLoading(false);

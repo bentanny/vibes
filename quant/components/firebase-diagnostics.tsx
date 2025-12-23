@@ -17,7 +17,8 @@ export function FirebaseDiagnostics() {
     // Only show if explicitly enabled via localStorage
     if (typeof window !== "undefined") {
       const enabled = localStorage.getItem("firebase-diagnostics") === "true";
-      setShow(enabled && process.env.NODE_ENV !== "production");
+      // Allow in production for debugging
+      setShow(enabled);
     }
   }, []);
 
@@ -49,6 +50,19 @@ export function FirebaseDiagnostics() {
 
     if (auth.app.options.apiKey) {
       checks.push("✅ Firebase app is initialized");
+      checks.push(`   Current domain: ${window.location.hostname}`);
+      checks.push(`   Auth domain: ${authDomain || "not set"}`);
+      checks.push(`   Project ID: ${projectId || "not set"}`);
+      checks.push(`   API Key: ${apiKey ? apiKey.substring(0, 20) + "..." : "not set"}`);
+      
+      // Check if auth domain matches current domain pattern
+      if (authDomain && window.location.hostname) {
+        const isAuthorized = authDomain.includes(window.location.hostname.split('.')[0]) || 
+                            window.location.hostname.includes(authDomain.split('.')[0]);
+        if (!isAuthorized) {
+          checks.push(`⚠️  Domain mismatch: ${window.location.hostname} vs ${authDomain}`);
+        }
+      }
     } else {
       checks.push("❌ Firebase app is not properly initialized");
     }

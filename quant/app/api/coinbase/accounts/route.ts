@@ -47,15 +47,15 @@ export async function GET(request: NextRequest) {
     );
 
     // Get user profile for additional context
-    const user = await client.getUser();
+    const coinbaseUser = await client.getUser();
 
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar_url,
-        nativeCurrency: user.native_currency,
+        id: coinbaseUser.id,
+        name: coinbaseUser.name,
+        avatar: coinbaseUser.avatar_url,
+        nativeCurrency: coinbaseUser.native_currency,
       },
       accounts: relevantAccounts.map((acc) => ({
         id: acc.id,

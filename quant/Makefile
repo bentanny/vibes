@@ -60,7 +60,13 @@ IMAGE_TAG := $(ARTIFACT_REGISTRY_URL)/vibe-trade-ui:latest
 
 # Firebase configuration - these are build-time variables (NEXT_PUBLIC_*)
 # They get baked into the JavaScript bundle during next build
-# Set these as environment variables before running make docker-build
+# For local dev: Load from .env file if it exists, otherwise use environment variables
+# For deployment (docker-build): Load from terraform.tfvars
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
 FIREBASE_API_KEY ?= $(NEXT_PUBLIC_FIREBASE_API_KEY)
 FIREBASE_AUTH_DOMAIN ?= $(NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN)
 FIREBASE_PROJECT_ID ?= $(NEXT_PUBLIC_FIREBASE_PROJECT_ID)
@@ -72,25 +78,38 @@ docker-build:
 	@echo "🏗️  Building Docker image..."
 	@echo "   Image: $(IMAGE_TAG)"
 	@echo "   Platform: linux/amd64 (required for Cloud Run)"
-	@if [ -z "$(FIREBASE_API_KEY)" ] || [ -z "$(FIREBASE_AUTH_DOMAIN)" ] || [ -z "$(FIREBASE_PROJECT_ID)" ]; then \
-		echo "❌ Error: Firebase configuration variables are required"; \
-		echo "   Set these environment variables:"; \
-		echo "     NEXT_PUBLIC_FIREBASE_API_KEY"; \
-		echo "     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"; \
-		echo "     NEXT_PUBLIC_FIREBASE_PROJECT_ID"; \
-		echo "     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"; \
-		echo "     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"; \
-		echo "     NEXT_PUBLIC_FIREBASE_APP_ID"; \
+	@echo "   Loading Firebase config from terraform.tfvars..."
+	@TERRAFORM_TFVARS="../../vibe-trade-terraform/terraform.tfvars" && \
+	if [ -f "$$TERRAFORM_TFVARS" ]; then \
+		FIREBASE_API_KEY=$$(grep -E '^\s*firebase_api_key\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_api_key[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		FIREBASE_AUTH_DOMAIN=$$(grep -E '^\s*firebase_auth_domain\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_auth_domain[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		FIREBASE_PROJECT_ID=$$(grep -E '^\s*firebase_project_id\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_project_id[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		FIREBASE_STORAGE_BUCKET=$$(grep -E '^\s*firebase_storage_bucket\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_storage_bucket[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		FIREBASE_MESSAGING_SENDER_ID=$$(grep -E '^\s*firebase_messaging_sender_id\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_messaging_sender_id[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		FIREBASE_APP_ID=$$(grep -E '^\s*firebase_app_id\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_app_id[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		LANGGRAPH_API_URL=$$(grep -E '^\s*langgraph_api_url\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*langgraph_api_url[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		if [ -z "$$FIREBASE_API_KEY" ] || [ -z "$$FIREBASE_AUTH_DOMAIN" ] || [ -z "$$FIREBASE_PROJECT_ID" ]; then \
+			echo "❌ Error: Required Firebase configuration variables are missing in terraform.tfvars"; \
+			echo "   Required:"; \
+			echo "     firebase_api_key"; \
+			echo "     firebase_auth_domain"; \
+			echo "     firebase_project_id"; \
+			exit 1; \
+		fi; \
+		docker build --platform linux/amd64 \
+			--build-arg NEXT_PUBLIC_FIREBASE_API_KEY="$$FIREBASE_API_KEY" \
+			--build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="$$FIREBASE_AUTH_DOMAIN" \
+			--build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="$$FIREBASE_PROJECT_ID" \
+			--build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="$$FIREBASE_STORAGE_BUCKET" \
+			--build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="$$FIREBASE_MESSAGING_SENDER_ID" \
+			--build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$$FIREBASE_APP_ID" \
+			--build-arg NEXT_PUBLIC_LANGGRAPH_API_URL="$$LANGGRAPH_API_URL" \
+			-t $(IMAGE_TAG) .; \
+	else \
+		echo "❌ Error: terraform.tfvars not found at $$TERRAFORM_TFVARS"; \
+		echo "   For deployment, Firebase config must be in terraform.tfvars"; \
 		exit 1; \
 	fi
-	docker build --platform linux/amd64 \
-		--build-arg NEXT_PUBLIC_FIREBASE_API_KEY="$(FIREBASE_API_KEY)" \
-		--build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="$(FIREBASE_AUTH_DOMAIN)" \
-		--build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="$(FIREBASE_PROJECT_ID)" \
-		--build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="$(FIREBASE_STORAGE_BUCKET)" \
-		--build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="$(FIREBASE_MESSAGING_SENDER_ID)" \
-		--build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$(FIREBASE_APP_ID)" \
-		-t $(IMAGE_TAG) .
 	@echo "✅ Build complete"
 
 docker-push:
