@@ -73,6 +73,7 @@ FIREBASE_PROJECT_ID ?= $(NEXT_PUBLIC_FIREBASE_PROJECT_ID)
 FIREBASE_STORAGE_BUCKET ?= $(NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)
 FIREBASE_MESSAGING_SENDER_ID ?= $(NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID)
 FIREBASE_APP_ID ?= $(NEXT_PUBLIC_FIREBASE_APP_ID)
+LANGSMITH_API_KEY ?= $(NEXT_PUBLIC_LANGSMITH_API_KEY)
 
 docker-build:
 	@echo "🏗️  Building Docker image..."
@@ -88,12 +89,18 @@ docker-build:
 		FIREBASE_MESSAGING_SENDER_ID=$$(grep -E '^\s*firebase_messaging_sender_id\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_messaging_sender_id[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
 		FIREBASE_APP_ID=$$(grep -E '^\s*firebase_app_id\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*firebase_app_id[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
 		LANGGRAPH_API_URL=$$(grep -E '^\s*langgraph_api_url\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*langgraph_api_url[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
+		LANGSMITH_API_KEY=$$(grep -E '^\s*langsmith_api_key\s*=' $$TERRAFORM_TFVARS | sed -E 's/^[[:space:]]*langsmith_api_key[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/' | head -1); \
 		if [ -z "$$FIREBASE_API_KEY" ] || [ -z "$$FIREBASE_AUTH_DOMAIN" ] || [ -z "$$FIREBASE_PROJECT_ID" ]; then \
 			echo "❌ Error: Required Firebase configuration variables are missing in terraform.tfvars"; \
 			echo "   Required:"; \
 			echo "     firebase_api_key"; \
 			echo "     firebase_auth_domain"; \
 			echo "     firebase_project_id"; \
+			exit 1; \
+		fi; \
+		if [ -z "$$LANGSMITH_API_KEY" ]; then \
+			echo "❌ Error: langsmith_api_key is missing in terraform.tfvars"; \
+			echo "   Required for LangGraph agent authentication"; \
 			exit 1; \
 		fi; \
 		docker build --platform linux/amd64 \
@@ -104,6 +111,7 @@ docker-build:
 			--build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="$$FIREBASE_MESSAGING_SENDER_ID" \
 			--build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$$FIREBASE_APP_ID" \
 			--build-arg NEXT_PUBLIC_LANGGRAPH_API_URL="$$LANGGRAPH_API_URL" \
+			--build-arg NEXT_PUBLIC_LANGSMITH_API_KEY="$$LANGSMITH_API_KEY" \
 			-t $(IMAGE_TAG) .; \
 	else \
 		echo "❌ Error: terraform.tfvars not found at $$TERRAFORM_TFVARS"; \

@@ -1,3 +1,5 @@
+import { auth } from "./firebase";
+
 export const LANGGRAPH_API_URL = 
   process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || 
   "https://vibe-trade-agent-kff5sbwvca-uc.a.run.app";
@@ -17,6 +19,26 @@ export async function* streamRun(
   const finalAssistantId = assistantId && assistantId.trim() !== "" ? assistantId : "agent";
   console.log("StreamRun Config:", { threadId, assistantId, finalAssistantId });
 
+  // Get LangSmith API key from environment (build-time variable) - REQUIRED
+  const langsmithApiKey = process.env.NEXT_PUBLIC_LANGSMITH_API_KEY;
+  
+  if (!langsmithApiKey) {
+    throw new Error("NEXT_PUBLIC_LANGSMITH_API_KEY is not configured");
+  }
+
+  // Get Firebase ID token if user is logged in (OPTIONAL - for user identification)
+  const user = auth.currentUser;
+  let idToken: string | null = null;
+  
+  if (user) {
+    try {
+      idToken = await user.getIdToken();
+    } catch (error) {
+      console.error("Failed to get Firebase ID token for LangGraph API:", error);
+      // Don't fail - Firebase token is optional
+    }
+  }
+
   const body: Record<string, any> = {
     assistant_id: finalAssistantId,
     input,
@@ -29,11 +51,19 @@ export async function* streamRun(
     if_not_exists: "create",
   };
 
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    "X-Api-Key": langsmithApiKey, // Required for LangGraph authentication
+  };
+
+  // Optionally add Firebase token for user identification (if logged in)
+  if (idToken) {
+    headers["Authorization"] = `Bearer ${idToken}`;
+  }
+
   const response = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
 
