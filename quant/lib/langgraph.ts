@@ -1,7 +1,8 @@
 import { auth } from "./firebase";
+import { getOrCreateSessionId } from "./session";
 
-export const LANGGRAPH_API_URL = 
-  process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || 
+export const LANGGRAPH_API_URL =
+  process.env.NEXT_PUBLIC_LANGGRAPH_API_URL ||
   "https://vibe-trade-agent-kff5sbwvca-uc.a.run.app";
 
 export interface LangGraphConfig {
@@ -16,30 +17,36 @@ export async function* streamRun(
   const { threadId, assistantId } = config;
   const url = `${LANGGRAPH_API_URL}/threads/${threadId}/runs/stream`;
 
-  const finalAssistantId = assistantId && assistantId.trim() !== "" ? assistantId : "agent";
-  console.log("StreamRun Config:", { threadId, assistantId, finalAssistantId });
+  const finalAssistantId =
+    assistantId && assistantId.trim() !== "" ? assistantId : "agent";
 
   // Get LangSmith API key from environment (build-time variable) - REQUIRED
   const langsmithApiKey = process.env.NEXT_PUBLIC_LANGSMITH_API_KEY;
-  
+
   if (!langsmithApiKey) {
     throw new Error("NEXT_PUBLIC_LANGSMITH_API_KEY is not configured");
   }
 
+  // Get session ID (always present - for anonymous user tracking)
+  const sessionId = getOrCreateSessionId();
+
   // Get Firebase ID token if user is logged in (OPTIONAL - for user identification)
   const user = auth.currentUser;
   let idToken: string | null = null;
-  
+
   if (user) {
     try {
       idToken = await user.getIdToken();
     } catch (error) {
-      console.error("Failed to get Firebase ID token for LangGraph API:", error);
-      // Don't fail - Firebase token is optional
+      console.error(
+        "Failed to get Firebase ID token for LangGraph API:",
+        error
+      );
+      // Don't fail - Firebase token is optional for anonymous users
     }
   }
 
-  // Get user ID if logged in (for passing in config as fallback)
+  // Get user ID if logged in
   const userId = user?.uid || null;
 
   const body: Record<string, any> = {
@@ -48,7 +55,9 @@ export async function* streamRun(
     config: {
       configurable: {
         thread_id: threadId,
-        // Pass user_id in config as fallback (in case headers aren't available)
+        // Always pass session_id for anonymous user tracking
+        session_id: sessionId,
+        // Pass user_id if logged in
         ...(userId ? { user_id: userId } : {}),
       },
     },

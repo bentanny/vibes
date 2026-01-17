@@ -1,16 +1,18 @@
 /**
  * SnapTrade Orders API Route
- * 
+ *
  * GET /api/snaptrade/orders?accountId=xxx - Get order history
  * DELETE /api/snaptrade/orders - Cancel an order
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
+import { withAuth } from "@/lib/api-auth";
 import { getOrderHistory, cancelOrder } from "@/lib/snaptrade";
 
-function decryptCredentials(encrypted: string): { userId: string; userSecret: string } | null {
+function decryptCredentials(
+  encrypted: string
+): { userId: string; userSecret: string } | null {
   try {
     const data = Buffer.from(encrypted, "base64").toString("utf-8");
     return JSON.parse(data);
@@ -19,22 +21,8 @@ function decryptCredentials(encrypted: string): { userId: string; userSecret: st
   }
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    // Verify Firebase Auth
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
     // Get stored credentials
     const cookieStore = await cookies();
     const encryptedCreds = cookieStore.get("snaptrade_creds")?.value;
@@ -57,7 +45,11 @@ export async function GET(request: NextRequest) {
     // Get account ID and status filter from query params
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get("accountId");
-    const status = searchParams.get("status") as "all" | "open" | "executed" | undefined;
+    const status = searchParams.get("status") as
+      | "all"
+      | "open"
+      | "executed"
+      | undefined;
 
     if (!accountId) {
       return NextResponse.json(
@@ -81,28 +73,17 @@ export async function GET(request: NextRequest) {
     console.error("SnapTrade orders error:", error);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch orders" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch orders",
+      },
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(async (request: NextRequest) => {
   try {
-    // Verify Firebase Auth
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
     // Get stored credentials
     const cookieStore = await cookies();
     const encryptedCreds = cookieStore.get("snaptrade_creds")?.value;
@@ -147,9 +128,11 @@ export async function DELETE(request: NextRequest) {
     console.error("SnapTrade cancel order error:", error);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to cancel order" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to cancel order",
+      },
       { status: 500 }
     );
   }
-}
-
+});

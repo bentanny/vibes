@@ -1,8 +1,8 @@
 /**
  * Coinbase Trade API Route
- * 
+ *
  * POST /api/coinbase/trade - Execute a buy or sell order
- * 
+ *
  * Request body:
  * {
  *   action: "buy" | "sell",
@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
+import { withAuth } from "@/lib/api-auth";
 import { CoinbaseClient } from "@/lib/coinbase";
 
 interface TradeRequest {
@@ -28,24 +28,9 @@ interface TradeRequest {
   commit?: boolean;
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
-    // Verify Firebase Auth
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
-    // TODO: Get Coinbase access token from Firestore or secure storage
-    // For now, check cookies for Coinbase token (temporary solution)
+    // Get Coinbase access token from cookies
     const cookieStore = await cookies();
     const coinbaseToken = cookieStore.get("coinbase_access_token")?.value;
 
@@ -57,7 +42,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body: TradeRequest = await request.json();
-    const { action, accountId, amount, currency, paymentMethodId, commit = false } = body;
+    const {
+      action,
+      accountId,
+      amount,
+      currency,
+      paymentMethodId,
+      commit = false,
+    } = body;
 
     // Validate required fields
     if (!action || !["buy", "sell"].includes(action)) {
@@ -118,8 +110,8 @@ export async function POST(request: NextRequest) {
         instant: order.instant,
         createdAt: order.created_at,
       },
-      message: commit 
-        ? `${action.charAt(0).toUpperCase() + action.slice(1)} order executed successfully` 
+      message: commit
+        ? `${action.charAt(0).toUpperCase() + action.slice(1)} order executed successfully`
         : `${action.charAt(0).toUpperCase() + action.slice(1)} order preview created. Call with commit=true to execute.`,
     });
   } catch (error) {
@@ -152,11 +144,11 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * Commit a previously created order
- * 
+ *
  * PUT /api/coinbase/trade
  * {
  *   action: "buy" | "sell",
@@ -164,23 +156,9 @@ export async function POST(request: NextRequest) {
  *   orderId: string
  * }
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(async (request: NextRequest) => {
   try {
-    // Verify Firebase Auth
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
-    // TODO: Get Coinbase access token from Firestore or secure storage
+    // Get Coinbase access token from cookies
     const cookieStore = await cookies();
     const coinbaseToken = cookieStore.get("coinbase_access_token")?.value;
 
@@ -232,5 +210,4 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

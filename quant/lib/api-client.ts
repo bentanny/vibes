@@ -1,34 +1,23 @@
 import { auth } from "./firebase";
 
 /**
- * Make an authenticated API request with Firebase ID token
+ * Make an authenticated API request with Firebase ID token.
+ * Uses Authorization header only - no cookies for security.
  */
 export async function authenticatedFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
   const user = auth.currentUser;
-  let idToken: string | null = null;
+  const headers = new Headers(options.headers);
 
   if (user) {
     try {
-      idToken = await user.getIdToken();
+      const idToken = await user.getIdToken();
+      headers.set("Authorization", `Bearer ${idToken}`);
     } catch (error) {
       console.error("Failed to get ID token:", error);
     }
-  }
-
-  const headers = new Headers(options.headers);
-
-  // Add Authorization header if we have a token
-  if (idToken) {
-    headers.set("Authorization", `Bearer ${idToken}`);
-  }
-
-  // Also set token in cookie for Next.js API routes that might check cookies
-  // Note: This requires the API route to read from cookies
-  if (idToken && typeof document !== "undefined") {
-    document.cookie = `firebase_token=${idToken}; path=/; max-age=3600; SameSite=Lax`;
   }
 
   return fetch(url, {
@@ -36,4 +25,3 @@ export async function authenticatedFetch(
     headers,
   });
 }
-

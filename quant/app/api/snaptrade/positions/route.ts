@@ -1,15 +1,17 @@
 /**
  * SnapTrade Positions API Route
- * 
+ *
  * GET /api/snaptrade/positions?accountId=xxx - Get positions for an account
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
+import { withAuth } from "@/lib/api-auth";
 import { getPositions, getBalances } from "@/lib/snaptrade";
 
-function decryptCredentials(encrypted: string): { userId: string; userSecret: string } | null {
+function decryptCredentials(
+  encrypted: string
+): { userId: string; userSecret: string } | null {
   try {
     const data = Buffer.from(encrypted, "base64").toString("utf-8");
     return JSON.parse(data);
@@ -18,22 +20,8 @@ function decryptCredentials(encrypted: string): { userId: string; userSecret: st
   }
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    // Verify Firebase Auth
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
     // Get stored credentials
     const cookieStore = await cookies();
     const encryptedCreds = cookieStore.get("snaptrade_creds")?.value;
@@ -79,9 +67,11 @@ export async function GET(request: NextRequest) {
     console.error("SnapTrade positions error:", error);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch positions" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch positions",
+      },
       { status: 500 }
     );
   }
-}
-
+});

@@ -1,8 +1,8 @@
 /**
  * SnapTrade Trade API Route
- * 
+ *
  * POST /api/snaptrade/trade - Execute a trade
- * 
+ *
  * Request body:
  * {
  *   accountId: string,
@@ -16,10 +16,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
+import { withAuth } from "@/lib/api-auth";
 import { placeMarketOrder, placeLimitOrder } from "@/lib/snaptrade";
 
-function decryptCredentials(encrypted: string): { userId: string; userSecret: string } | null {
+function decryptCredentials(
+  encrypted: string
+): { userId: string; userSecret: string } | null {
   try {
     const data = Buffer.from(encrypted, "base64").toString("utf-8");
     return JSON.parse(data);
@@ -28,22 +30,8 @@ function decryptCredentials(encrypted: string): { userId: string; userSecret: st
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
-    // Try to get user from Authorization header first, then from cookies
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
     // Get stored credentials
     const cookieStore = await cookies();
     const encryptedCreds = cookieStore.get("snaptrade_creds")?.value;
@@ -64,7 +52,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { accountId, symbol, action, quantity, orderType = "MARKET", limitPrice } = body;
+    const {
+      accountId,
+      symbol,
+      action,
+      quantity,
+      orderType = "MARKET",
+      limitPrice,
+    } = body;
 
     // Validate required fields
     if (!accountId || !symbol || !action || !quantity) {
@@ -144,9 +139,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to execute trade" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to execute trade",
+      },
       { status: 500 }
     );
   }
-}
-
+});

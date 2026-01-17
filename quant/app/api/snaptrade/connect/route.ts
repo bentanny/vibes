@@ -1,18 +1,20 @@
 /**
  * SnapTrade Connection Portal API Route
- * 
+ *
  * GET /api/snaptrade/connect - Get the connection portal URL
- * 
+ *
  * Returns a URL that redirects users to SnapTrade's connection portal
  * where they can link their brokerage accounts.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
+import { withAuth, FirebaseUser } from "@/lib/api-auth";
 import { getConnectionPortalUrl, registerSnapTradeUser } from "@/lib/snaptrade";
 
-function decryptCredentials(encrypted: string): { userId: string; userSecret: string } | null {
+function decryptCredentials(
+  encrypted: string
+): { userId: string; userSecret: string } | null {
   try {
     const data = Buffer.from(encrypted, "base64").toString("utf-8");
     return JSON.parse(data);
@@ -26,26 +28,21 @@ function encryptCredentials(userId: string, userSecret: string): string {
   return Buffer.from(data).toString("base64");
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, user: FirebaseUser) => {
   try {
-    // Verify Firebase Auth
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user?.email) {
+    if (!user.email) {
       return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
+        { error: "Email required for SnapTrade connection" },
+        { status: 400 }
       );
     }
 
     // Get optional parameters
     const { searchParams } = new URL(request.url);
     const broker = searchParams.get("broker") || undefined;
-    const redirectUrl = searchParams.get("redirect") || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/settings?connected=true`;
+    const redirectUrl =
+      searchParams.get("redirect") ||
+      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/settings?connected=true`;
 
     // Get or create SnapTrade credentials
     const cookieStore = await cookies();
@@ -59,16 +56,19 @@ export async function GET(request: NextRequest) {
     // If no credentials, register the user first
     if (!credentials) {
       const uniqueId = `quant_${user.email.replace(/[^a-zA-Z0-9]/g, "_")}`;
-      
+
       try {
         const snapTradeUser = await registerSnapTradeUser(uniqueId);
         credentials = {
           userId: snapTradeUser.userId,
           userSecret: snapTradeUser.userSecret,
         };
-        
+
         // Store credentials
-        encryptedCreds = encryptCredentials(credentials.userId, credentials.userSecret);
+        encryptedCreds = encryptCredentials(
+          credentials.userId,
+          credentials.userSecret
+        );
         cookieStore.set("snaptrade_creds", encryptedCreds, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
@@ -105,9 +105,13 @@ export async function GET(request: NextRequest) {
     console.error("SnapTrade connect error:", error);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get connection URL" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get connection URL",
+      },
       { status: 500 }
     );
   }
-}
-
+});

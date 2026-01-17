@@ -1,30 +1,16 @@
 /**
  * Coinbase Prices API Route
- * 
+ *
  * GET /api/coinbase/prices?pairs=BTC-USD,ETH-USD - Get spot prices
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getFirebaseUser, getFirebaseUserFromCookies } from "@/lib/api-auth";
+import { withAuth } from "@/lib/api-auth";
 import { CoinbaseClient } from "@/lib/coinbase";
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    // Verify Firebase Auth
-    let user = await getFirebaseUser(request);
-    if (!user) {
-      const cookieStore = await cookies();
-      user = await getFirebaseUserFromCookies(cookieStore);
-    }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
     // Get Coinbase access token from cookies
     const cookieStore = await cookies();
     const coinbaseToken = cookieStore.get("coinbase_access_token")?.value;
@@ -83,5 +69,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

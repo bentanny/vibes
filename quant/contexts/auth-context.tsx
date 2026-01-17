@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import {
   User,
   signInWithPopup,
@@ -11,6 +17,7 @@ import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { claimSession } from "@/lib/session";
 
 interface AuthContextType {
   user: User | null;
@@ -27,15 +34,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasClaimedSession = useRef(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (newUser) => {
+      const previousUser = user;
+      setUser(newUser);
       setLoading(false);
+
+      // Claim session when user logs in (transition from null to user)
+      if (newUser && !previousUser && !hasClaimedSession.current) {
+        hasClaimedSession.current = true;
+        try {
+          const idToken = await newUser.getIdToken();
+          const result = await claimSession(newUser.uid, idToken);
+          if (result.claimed > 0) {
+            console.log(`Claimed ${result.claimed} resources from anonymous session`);
+          }
+        } catch (error) {
+          console.error("Failed to claim session on login:", error);
+        }
+      }
+
+      // Reset claim flag when user logs out
+      if (!newUser && previousUser) {
+        hasClaimedSession.current = false;
+      }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const signInWithGoogle = async () => {
     // Check if Firebase is configured
@@ -50,12 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     provider.setCustomParameters({
       prompt: "select_account",
     });
-    
+
     try {
       await signInWithPopup(auth, provider);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Re-throw with more context
-      if (error.code === "auth/popup-closed-by-user") {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "auth/popup-closed-by-user"
+      ) {
         throw error; // User closed popup, don't show error
       }
       console.error("Firebase Auth error:", error);
