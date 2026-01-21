@@ -1,0 +1,337 @@
+/**
+ * Vibe Trade API Client
+ *
+ * Client for interacting with vibe-trade-api and vibe-trade-execution services.
+ */
+
+import { auth } from "./firebase";
+
+// API URLs - can be overridden via environment variables
+const VIBE_API_URL =
+  process.env.NEXT_PUBLIC_VIBE_API_URL ||
+  "https://vibe-trade-api-kff5sbwvca-uc.a.run.app";
+
+const EXECUTION_API_URL =
+  process.env.NEXT_PUBLIC_EXECUTION_API_URL ||
+  "https://vibe-trade-execution-kff5sbwvca-uc.a.run.app";
+
+/**
+ * Get authorization headers with Firebase ID token
+ */
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      const idToken = await user.getIdToken();
+      headers["Authorization"] = `Bearer ${idToken}`;
+    } catch (error) {
+      console.error("Failed to get ID token:", error);
+    }
+  }
+
+  return headers;
+}
+
+/**
+ * Make an authenticated request to the Vibe API
+ */
+async function vibeApiFetch<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${VIBE_API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.detail || error.error || `API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Make an authenticated request to the Execution API
+ */
+async function executionApiFetch<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${EXECUTION_API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.detail || error.error || `API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface Strategy {
+  id: string;
+  owner_id: string | null;
+  session_id: string | null;
+  thread_id: string | null;
+  name: string;
+  status: string;
+  universe: string[];
+  attachments: Attachment[];
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Attachment {
+  card_id: string;
+  role: string;
+  enabled: boolean;
+  overrides: Record<string, unknown>;
+  follow_latest: boolean;
+  card_revision_id: string | null;
+}
+
+export interface Card {
+  id: string;
+  archetype_id: string;
+  name: string;
+  slots: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  role?: string;
+  enabled?: boolean;
+  overrides?: Record<string, unknown>;
+}
+
+export interface StrategyWithCards {
+  strategy: Strategy;
+  cards: Card[];
+  card_count: number;
+}
+
+export interface BacktestRequest {
+  strategy_id: string;
+  start_date: string; // ISO date string
+  end_date: string;
+  initial_cash?: number;
+  // symbol is extracted from strategy's entry card context
+  // mode is determined by backend environment (K_SERVICE)
+  // Parameter overrides: cardId -> path -> value
+  card_overrides?: Record<string, Record<string, number>>;
+}
+
+export interface BacktestResponse {
+  backtest_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+  strategy_id: string;
+  start_date: string;
+  end_date: string;
+  symbol: string;
+  message?: string;
+  results?: BacktestResults;
+  error?: string;
+}
+
+export interface BacktestResults {
+  statistics?: PerformanceStatistics;
+  trades?: Trade[];
+  equity_curve?: EquityPoint[];
+  final_equity?: number;
+}
+
+export interface PerformanceStatistics {
+  total_return: number;
+  annual_return: number;
+  sharpe_ratio?: number;
+  sortino_ratio?: number;
+  max_drawdown: number;
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  win_rate: number;
+  profit_factor?: number;
+  average_win: number;
+  average_loss: number;
+  net_profit: number;
+}
+
+export interface Trade {
+  trade_id: string;
+  symbol: string;
+  direction: "buy" | "sell";
+  entry_time: string;
+  entry_price: number;
+  entry_quantity: number;
+  exit_time?: string;
+  exit_price?: number;
+  pnl?: number;
+  pnl_percent?: number;
+  exit_reason?: string;
+}
+
+export interface EquityPoint {
+  time: string;
+  equity: number;
+  cash: number;
+  holdings_value: number;
+  drawdown: number;
+}
+
+export interface BacktestListItem {
+  backtest_id: string;
+  status: string;
+  strategy_id: string;
+  symbol: string;
+  start_date: string;
+  end_date: string;
+  initial_cash: number;
+  total_return: number | null;
+  total_trades: number | null;
+  message: string | null;
+  error: string | null;
+  created_at: string;
+}
+
+export interface BacktestListResponse {
+  backtests: BacktestListItem[];
+  total: number;
+}
+
+// =============================================================================
+// Strategy API
+// =============================================================================
+
+/**
+ * Get all strategies for the authenticated user
+ */
+export async function getStrategies(): Promise<Strategy[]> {
+  return vibeApiFetch<Strategy[]>("/api/strategies");
+}
+
+/**
+ * Get a strategy by ID with all its cards
+ */
+export async function getStrategy(strategyId: string): Promise<StrategyWithCards> {
+  return vibeApiFetch<StrategyWithCards>(`/api/strategies/${strategyId}`);
+}
+
+/**
+ * Get a strategy by thread ID with all its cards
+ */
+export async function getStrategyByThreadId(
+  threadId: string
+): Promise<StrategyWithCards> {
+  return vibeApiFetch<StrategyWithCards>(
+    `/api/strategies/threads/${threadId}/strategy`
+  );
+}
+
+// =============================================================================
+// Backtest API
+// =============================================================================
+
+/**
+ * Run a backtest for a strategy
+ */
+export async function runBacktest(
+  request: BacktestRequest
+): Promise<BacktestResponse> {
+  return executionApiFetch<BacktestResponse>("/backtest", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * Get the status/results of a backtest
+ */
+export async function getBacktestStatus(
+  backtestId: string
+): Promise<BacktestResponse> {
+  return executionApiFetch<BacktestResponse>(`/backtest/${backtestId}`);
+}
+
+/**
+ * Get backtest history for a strategy
+ */
+export async function getBacktestHistory(
+  strategyId: string,
+  limit: number = 20
+): Promise<BacktestListResponse> {
+  return executionApiFetch<BacktestListResponse>(
+    `/backtest/strategy/${strategyId}?limit=${limit}`
+  );
+}
+
+// =============================================================================
+// Helper functions
+// =============================================================================
+
+/**
+ * Format a date for display
+ */
+export function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * Format a number as currency
+ */
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
+
+/**
+ * Format a number as percentage
+ */
+export function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(2)}%`;
+}
+
+/**
+ * Get status badge color
+ */
+export function getStatusColor(status: string): string {
+  switch (status) {
+    case "draft":
+      return "default";
+    case "ready":
+      return "primary";
+    case "running":
+      return "success";
+    case "paused":
+      return "warning";
+    case "stopped":
+    case "error":
+      return "danger";
+    default:
+      return "default";
+  }
+}

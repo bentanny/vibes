@@ -1,0 +1,28 @@
+# Dependencies - npm ci will reinstall
+node_modules/
+
+# Build outputs (we build fresh)
+.next/
+out/
+
+# Development
+.env
+.env.local
+.env.*.local
+.git/
+.gitignore
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.md
+.DS_Store
+Thumbs.db

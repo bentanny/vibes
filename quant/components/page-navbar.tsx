@@ -7,13 +7,15 @@ import { useSession } from "@/contexts/auth-context";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/avatar";
 import { Logo } from "@/components/icons";
-import { GalleryVerticalEnd, Layers, TextAlignJustify } from "lucide-react";
+import { GalleryVerticalEnd, Layers, TextAlignJustify, LayoutGrid } from "lucide-react";
+import { SignInModal } from "@/components/sign-in-modal";
 
 export function PageNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
   const [currentView, setCurrentView] = useState<string | null>(null);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   // Check current view from localStorage
   useEffect(() => {
@@ -96,6 +98,44 @@ export function PageNavbar() {
     );
   }
 
+  function StrategiesButton({
+    router,
+  }: {
+    router: ReturnType<typeof useRouter>;
+  }) {
+    const [isHovered, setIsHovered] = useState(false);
+
+    return (
+      <div
+        className={`relative flex items-center cursor-pointer ${isHovered ? "mix-blend-normal" : "mix-blend-difference"}`}
+        onClick={() => router.push("/strategies")}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="flex items-center overflow-hidden">
+          <span
+            className={`text-xs font-medium uppercase tracking-wider whitespace-nowrap transition-all duration-300 ease-out ${
+              isHovered
+                ? "max-w-[120px] opacity-100 mr-2 text-black"
+                : "max-w-0 opacity-0 text-white/80"
+            }`}
+          >
+            Strategies
+          </span>
+        </div>
+        <div
+          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 border ${
+            isHovered
+              ? "bg-white/95 text-black border-transparent"
+              : "bg-transparent border-white/30 text-white/80"
+          }`}
+        >
+          <LayoutGrid size={14} className="transition-colors" />
+        </div>
+      </div>
+    );
+  }
+
   const navItems = [
     { name: "Blog", href: "#", onClick: undefined },
     { name: "Intelligence", href: "#", onClick: handleIntelligenceClick },
@@ -144,6 +184,7 @@ export function PageNavbar() {
       <div className="pointer-events-auto flex justify-end items-center gap-3">
         {status === "authenticated" && session?.user ? (
           <>
+            <StrategiesButton router={router} />
             <PortfolioButton router={router} />
             <button
               onClick={() => router.push("/settings")}
@@ -182,12 +223,16 @@ export function PageNavbar() {
               className="hidden md:flex px-6 py-2 border border-white/30 rounded-full text-xs uppercase tracking-widest text-white hover:bg-white/95 hover:text-black hover:mix-blend-normal hover:border-transparent transition-all duration-300 bg-transparent mix-blend-difference"
               variant="bordered"
               radius="full"
+              onPress={() => setIsSignInOpen(true)}
             >
               Launch Terminal
             </Button>
           </>
         )}
       </div>
+
+      {/* Sign In Modal */}
+      <SignInModal isOpen={isSignInOpen} onOpenChange={setIsSignInOpen} />
     </nav>
   );
 }

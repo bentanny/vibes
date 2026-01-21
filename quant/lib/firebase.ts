@@ -1,5 +1,5 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -36,6 +36,11 @@ if (getApps().length === 0) {
 
 // Initialize Auth
 export const auth = getAuth(app);
+
+// Connect to auth emulator if configured (env-var driven)
+if (process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL) {
+  connectAuthEmulator(auth, process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL);
+}
 
 export default app;
 
