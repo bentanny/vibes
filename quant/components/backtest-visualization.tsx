@@ -411,16 +411,18 @@ function EquityCurveChart({
           <Scatter
             dataKey="entry"
             fill="hsl(var(--heroui-success))"
-            shape={(props: { cx: number; cy: number }) => (
-              <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-success))" />
-            )}
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-success))" />;
+            }}
           />
           <Scatter
             dataKey="exit"
             fill="hsl(var(--heroui-danger))"
-            shape={(props: { cx: number; cy: number }) => (
-              <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-danger))" />
-            )}
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-danger))" />;
+            }}
           />
         </ComposedChart>
       </ResponsiveContainer>
@@ -735,7 +737,7 @@ function TradesTable({ trades }: { trades: Trade[] }) {
                     }`}
                   >
                     {trade.pnl_percent !== undefined
-                      ? `${trade.pnl_percent >= 0 ? "+" : ""}${(trade.pnl_percent * 100).toFixed(2)}%`
+                      ? `${trade.pnl_percent >= 0 ? "+" : ""}${trade.pnl_percent.toFixed(2)}%`
                       : "-"}
                   </td>
                   <td className="py-3 px-4">
