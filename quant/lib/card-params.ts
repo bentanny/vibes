@@ -182,17 +182,8 @@ const PRIMITIVE_EXTRACTORS: Array<{
   },
   {
     name: "ScaleFactors",
-    signature: ["scale_risk_frac"],
+    signature: ["scale_size_frac"],
     fields: [
-      {
-        key: "scale_risk_frac",
-        label: "Risk Scale",
-        type: "float",
-        min: 0.1,
-        max: 2.0,
-        step: 0.1,
-        description: "Risk scaling factor",
-      },
       {
         key: "scale_size_frac",
         label: "Size Scale",
@@ -338,56 +329,6 @@ export function extractCardParams(card: {
     archetypeId: card.archetype_id,
     params,
   };
-}
-
-/**
- * Apply parameter overrides to card slots.
- * Returns a new slots object with overrides applied.
- */
-export function applyParamOverrides(
-  slots: Record<string, unknown>,
-  overrides: Record<string, number>
-): Record<string, unknown> {
-  // Deep clone the slots
-  const newSlots = JSON.parse(JSON.stringify(slots));
-
-  for (const [path, value] of Object.entries(overrides)) {
-    setNestedValue(newSlots, path, value);
-  }
-
-  return newSlots;
-}
-
-/**
- * Set a value at a nested path (e.g., "event.dip_band.mult").
- */
-function setNestedValue(
-  obj: Record<string, unknown>,
-  path: string,
-  value: unknown
-): void {
-  const parts = path.split(".");
-  let current: Record<string, unknown> = obj;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    // Handle array indexing like "items[0]"
-    const match = part.match(/^(.+)\[(\d+)\]$/);
-    if (match) {
-      const arrayKey = match[1];
-      const index = parseInt(match[2], 10);
-      if (!current[arrayKey]) current[arrayKey] = [];
-      const arr = current[arrayKey] as unknown[];
-      if (!arr[index]) arr[index] = {};
-      current = arr[index] as Record<string, unknown>;
-    } else {
-      if (!current[part]) current[part] = {};
-      current = current[part] as Record<string, unknown>;
-    }
-  }
-
-  const lastPart = parts[parts.length - 1];
-  current[lastPart] = value;
 }
 
 /**
