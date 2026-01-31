@@ -106,7 +106,6 @@ export interface Attachment {
   card_id: string;
   role: string;
   enabled: boolean;
-  overrides: Record<string, unknown>;
   follow_latest: boolean;
   card_revision_id: string | null;
 }
@@ -120,7 +119,6 @@ export interface Card {
   updated_at: string;
   role?: string;
   enabled?: boolean;
-  overrides?: Record<string, unknown>;
 }
 
 export interface StrategyWithCards {
@@ -134,10 +132,6 @@ export interface BacktestRequest {
   start_date: string; // ISO date string
   end_date: string;
   initial_cash?: number;
-  // symbol is extracted from strategy's entry card context
-  // mode is determined by backend environment (K_SERVICE)
-  // Parameter overrides: cardId -> path -> value
-  card_overrides?: Record<string, Record<string, number>>;
 }
 
 export interface BacktestResponse {
@@ -157,6 +151,8 @@ export interface BacktestResults {
   trades?: Trade[];
   equity_curve?: EquityPoint[];
   final_equity?: number;
+  ohlcv_bars?: OHLCVBar[];
+  indicators?: Record<string, Array<Record<string, any>>>;
 }
 
 export interface PerformanceStatistics {
@@ -195,6 +191,15 @@ export interface EquityPoint {
   cash: number;
   holdings_value: number;
   drawdown: number;
+}
+
+export interface OHLCVBar {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 export interface BacktestListItem {

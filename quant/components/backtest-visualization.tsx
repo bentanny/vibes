@@ -27,6 +27,8 @@ import {
   ComposedChart,
   Scatter,
   Legend,
+  Customized,
+  Bar,
 } from "recharts";
 import {
   TrendingUp,
@@ -44,6 +46,7 @@ import {
   EquityPoint,
   Trade,
   PerformanceStatistics,
+  OHLCVBar,
   formatCurrency,
   formatPercent,
   formatDate,
@@ -227,6 +230,22 @@ export function BacktestVisualization({
             >
               <div className="p-4">
                 <ReturnsChart data={equityData} />
+              </div>
+            </Tab>
+            <Tab
+              key="price"
+              title={
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Price Chart</span>
+                </div>
+              }
+            >
+              <div className="p-4">
+                <PriceChart
+                  ohlcvBars={result.results.ohlcv_bars}
+                  indicators={result.results.indicators}
+                />
               </div>
             </Tab>
           </Tabs>
@@ -553,6 +572,299 @@ function ReturnsChart({ data }: { data: { timeStr: string; return: number }[] })
   );
 }
 
+function PriceChart({
+  ohlcvBars,
+  indicators,
+}: {
+  ohlcvBars?: OHLCVBar[];
+  indicators?: Record<string, Array<Record<string, any>>>;
+}) {
+  const { chartData, indicatorLabels } = useMemo(() => {
+    if (!ohlcvBars?.length) {
+      return { chartData: [], indicatorLabels: {} as Record<string, string> };
+    }
+
+    const indicatorByTime = new Map<number, Record<string, number>>();
+    const labels: Record<string, string> = {};
+
+    if (indicators) {
+      for (const [name, series] of Object.entries(indicators)) {
+        if (!Array.isArray(series)) continue;
+        for (const point of series) {
+          if (!point || typeof point !== "object") continue;
+          const timeValue = typeof point.time === "string" ? point.time : null;
+          if (!timeValue) continue;
+          const timeMs = new Date(timeValue).getTime();
+          if (Number.isNaN(timeMs)) continue;
+
+          const existing = indicatorByTime.get(timeMs) || {};
+          for (const [key, value] of Object.entries(point)) {
+            if (key === "time" || typeof value !== "number") continue;
+            const normalizedName = normalizeIndicatorKey(name);
+            const normalizedKey = normalizeIndicatorKey(key);
+            const outKey = name === "BB" ? `bb_${normalizedKey}` : `${normalizedName}_${normalizedKey}`;
+            existing[outKey] = value;
+            labels[outKey] = name === "BB" ? `BB ${capitalizeWord(key)}` : `${name} ${key}`;
+          }
+          indicatorByTime.set(timeMs, existing);
+        }
+      }
+    }
+
+    const data = ohlcvBars.map((bar) => {
+      const timeMs = new Date(bar.time).getTime();
+      return {
+        time: timeMs,
+        timeStr: formatShortDate(bar.time),
+        ...bar,
+        ...(indicatorByTime.get(timeMs) || {}),
+      };
+    });
+
+    return { chartData: data, indicatorLabels: labels };
+  }, [ohlcvBars, indicators]);
+
+  if (!ohlcvBars?.length) {
+    return (
+      <div className="h-80 flex items-center justify-center text-default-500">
+        No price data available
+      </div>
+    );
+  }
+
+  const hasBollinger =
+    "bb_upper" in indicatorLabels ||
+    "bb_middle" in indicatorLabels ||
+    "bb_lower" in indicatorLabels;
+
+  return (
+    <div className="h-80">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={chartData} margin={{ top: 10, right: 40, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+          <XAxis
+            dataKey="time"
+            type="number"
+            scale="time"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => formatShortDateFromMs(value)}
+            domain={["auto", "auto"]}
+          />
+          <YAxis
+            yAxisId="price"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => formatCompactCurrency(value)}
+            domain={["auto", "auto"]}
+          />
+          <YAxis
+            yAxisId="volume"
+            orientation="right"
+            tick={{ fontSize: 10 }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => formatCompactNumber(value)}
+          />
+          <Tooltip
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const data = payload[0].payload;
+              const indicatorEntries = Object.entries(indicatorLabels).filter(
+                ([key]) => typeof data[key] === "number"
+              );
+
+              return (
+                <div className="bg-background/95 backdrop-blur border rounded-lg p-3 shadow-lg">
+                  <p className="text-xs text-default-500">{data.timeStr}</p>
+                  <div className="mt-1 space-y-0.5 text-sm">
+                    <p>
+                      Open: <span className="font-semibold">{formatCurrency(data.open)}</span>
+                    </p>
+                    <p>
+                      High: <span className="font-semibold">{formatCurrency(data.high)}</span>
+                    </p>
+                    <p>
+                      Low: <span className="font-semibold">{formatCurrency(data.low)}</span>
+                    </p>
+                    <p>
+                      Close: <span className="font-semibold">{formatCurrency(data.close)}</span>
+                    </p>
+                    <p>
+                      Volume:{" "}
+                      <span className="font-semibold">{formatCompactNumber(data.volume)}</span>
+                    </p>
+                  </div>
+                  {indicatorEntries.length > 0 && (
+                    <div className="mt-2 border-t pt-2 space-y-0.5 text-xs text-default-600">
+                      {indicatorEntries.map(([key, label]) => (
+                        <p key={key}>
+                          {label}:{" "}
+                          <span className="font-semibold">
+                            {formatCurrency(data[key])}
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }}
+          />
+          {hasBollinger && (
+            <Legend
+              verticalAlign="top"
+              height={24}
+              wrapperStyle={{ fontSize: "11px" }}
+            />
+          )}
+          <Line
+            yAxisId="price"
+            type="monotone"
+            dataKey="high"
+            stroke="transparent"
+            dot={false}
+            activeDot={false}
+            legendType="none"
+            isAnimationActive={false}
+          />
+          <Line
+            yAxisId="price"
+            type="monotone"
+            dataKey="low"
+            stroke="transparent"
+            dot={false}
+            activeDot={false}
+            legendType="none"
+            isAnimationActive={false}
+          />
+          <Customized component={CandlestickSeries} />
+          <Bar
+            dataKey="volume"
+            yAxisId="volume"
+            barSize={6}
+            fill="hsl(var(--heroui-foreground))"
+            fillOpacity={0.12}
+          />
+          {"bb_upper" in indicatorLabels && (
+            <Line
+              yAxisId="price"
+              type="monotone"
+              dataKey="bb_upper"
+              stroke="rgba(59, 130, 246, 0.7)"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              dot={false}
+              name={indicatorLabels.bb_upper}
+            />
+          )}
+          {"bb_middle" in indicatorLabels && (
+            <Line
+              yAxisId="price"
+              type="monotone"
+              dataKey="bb_middle"
+              stroke="rgba(59, 130, 246, 0.7)"
+              strokeWidth={1.5}
+              dot={false}
+              name={indicatorLabels.bb_middle}
+            />
+          )}
+          {"bb_lower" in indicatorLabels && (
+            <Line
+              yAxisId="price"
+              type="monotone"
+              dataKey="bb_lower"
+              stroke="rgba(59, 130, 246, 0.7)"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              dot={false}
+              name={indicatorLabels.bb_lower}
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function CandlestickSeries({
+  xAxisMap,
+  yAxisMap,
+  data,
+}: {
+  xAxisMap?: Record<string, any>;
+  yAxisMap?: Record<string, any>;
+  data?: Array<Record<string, any>>;
+}) {
+  if (!data?.length || !xAxisMap || !yAxisMap) return null;
+
+  const xAxis = Object.values(xAxisMap)[0];
+  const yAxis = yAxisMap.price || Object.values(yAxisMap)[0];
+  if (!xAxis?.scale || !yAxis?.scale) return null;
+
+  const xScale = xAxis.scale;
+  const yScale = yAxis.scale;
+  const xValues = data
+    .map((entry) => xScale(entry.time))
+    .filter((value: number | null | undefined) => typeof value === "number") as number[];
+
+  let candleWidth = 8;
+  if (xValues.length > 1) {
+    const diffs = xValues.slice(1).map((value, index) => Math.abs(value - xValues[index]));
+    const minDiff = Math.min(...diffs);
+    candleWidth = Math.max(2, Math.min(16, minDiff * 0.6));
+  }
+
+  return (
+    <g>
+      {data.map((entry, index) => {
+        const x = xScale(entry.time);
+        if (typeof x !== "number" || Number.isNaN(x)) return null;
+
+        const open = entry.open;
+        const close = entry.close;
+        const high = entry.high;
+        const low = entry.low;
+        if (
+          [open, close, high, low].some(
+            (value) => typeof value !== "number" || Number.isNaN(value)
+          )
+        ) {
+          return null;
+        }
+
+        const isBullish = close >= open;
+        const color = isBullish
+          ? "hsl(var(--heroui-success))"
+          : "hsl(var(--heroui-danger))";
+        const highY = yScale(high);
+        const lowY = yScale(low);
+        const bodyTop = yScale(Math.max(open, close));
+        const bodyBottom = yScale(Math.min(open, close));
+        const bodyHeight = Math.max(1, bodyBottom - bodyTop);
+        const bodyX = x - candleWidth / 2;
+
+        return (
+          <g key={`candle-${index}`}>
+            <line x1={x} x2={x} y1={highY} y2={lowY} stroke={color} strokeWidth={1} />
+            <rect
+              x={bodyX}
+              y={bodyTop}
+              width={candleWidth}
+              height={bodyHeight}
+              fill={color}
+              fillOpacity={0.6}
+              stroke={color}
+            />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 type SortField = "entry_time" | "pnl" | "pnl_percent";
 type SortDirection = "asc" | "desc";
 
@@ -783,6 +1095,50 @@ function formatShortDateTime(dateStr: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatShortDateFromMs(value: number): string {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatCompactCurrency(value: number): string {
+  const absValue = Math.abs(value);
+  if (absValue >= 1_000_000_000) {
+    return `$${(value / 1_000_000_000).toFixed(2)}b`;
+  }
+  if (absValue >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(2)}m`;
+  }
+  if (absValue >= 1_000) {
+    return `$${(value / 1_000).toFixed(2)}k`;
+  }
+  return `$${value.toFixed(2)}`;
+}
+
+function formatCompactNumber(value: number): string {
+  const absValue = Math.abs(value);
+  if (absValue >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toFixed(2)}b`;
+  }
+  if (absValue >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(2)}m`;
+  }
+  if (absValue >= 1_000) {
+    return `${(value / 1_000).toFixed(2)}k`;
+  }
+  return value.toFixed(0);
+}
+
+function normalizeIndicatorKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function capitalizeWord(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function findClosestEquityPoint(

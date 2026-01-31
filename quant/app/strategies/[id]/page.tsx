@@ -32,7 +32,7 @@ import {
   Clock,
 } from "lucide-react";
 import { BacktestVisualization } from "@/components/backtest-visualization";
-import { CardParamsEditor, CardParamsSummary } from "@/components/card-params-editor";
+import { CardParamsSummary } from "@/components/card-params-editor";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getStrategy,
@@ -77,11 +77,6 @@ export default function StrategyDetailPage({ params }: PageProps) {
   const [backtestHistory, setBacktestHistory] = useState<BacktestListItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
-
-  // Parameter overrides for backtest
-  const [paramOverrides, setParamOverrides] = useState<
-    Record<string, Record<string, number>>
-  >({});
 
   useEffect(() => {
     if (authLoading) return;
@@ -150,7 +145,6 @@ export default function StrategyDetailPage({ params }: PageProps) {
         start_date: new Date(backtestForm.startDate).toISOString(),
         end_date: new Date(backtestForm.endDate).toISOString(),
         initial_cash: parseFloat(backtestForm.initialCash),
-        card_overrides: Object.keys(paramOverrides).length > 0 ? paramOverrides : undefined,
       });
 
       setBacktestResult(result);
@@ -477,13 +471,6 @@ export default function StrategyDetailPage({ params }: PageProps) {
                 />
               </div>
 
-              {/* Card Parameter Overrides */}
-              <Divider />
-              <CardParamsEditor
-                cards={cards}
-                overrides={paramOverrides}
-                onOverridesChange={setParamOverrides}
-              />
             </div>
           </ModalBody>
           <ModalFooter>
