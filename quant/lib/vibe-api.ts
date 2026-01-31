@@ -241,6 +241,15 @@ export async function getStrategy(strategyId: string): Promise<StrategyWithCards
 }
 
 /**
+ * Delete a strategy by ID
+ */
+export async function deleteStrategy(strategyId: string): Promise<void> {
+  await vibeApiFetch(`/api/strategies/${strategyId}`, {
+    method: "DELETE",
+  });
+}
+
+/**
  * Get a strategy by thread ID with all its cards
  */
 export async function getStrategyByThreadId(

@@ -30,12 +30,14 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
+  Trash2,
 } from "lucide-react";
 import { BacktestVisualization } from "@/components/backtest-visualization";
 import { CardParamsSummary } from "@/components/card-params-editor";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getStrategy,
+  deleteStrategy,
   runBacktest,
   getBacktestHistory,
   getBacktestStatus,
@@ -78,6 +80,15 @@ export default function StrategyDetailPage({ params }: PageProps) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
 
+  // Delete strategy state
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: onDeleteOpen,
+    onClose: onDeleteClose,
+  } = useDisclosure();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   useEffect(() => {
     if (authLoading) return;
     loadStrategy();
@@ -98,8 +109,14 @@ export default function StrategyDetailPage({ params }: PageProps) {
       setStrategyData(data);
     } catch (err) {
       console.error("Failed to load strategy:", err);
+      const message =
+        err instanceof Error ? err.message : "Failed to load strategy";
+      if (isAuthError(message)) {
+        router.push("/");
+        return;
+      }
       setError(
-        err instanceof Error ? err.message : "Failed to load strategy"
+        message
       );
     } finally {
       setLoading(false);
@@ -169,6 +186,39 @@ export default function StrategyDetailPage({ params }: PageProps) {
     }
   }
 
+  function isAuthError(message: string): boolean {
+    const lowered = message.toLowerCase();
+    return (
+      lowered.includes("authentication required") ||
+      lowered.includes("unauthorized") ||
+      lowered.includes("token")
+    );
+  }
+
+  async function handleDeleteStrategy() {
+    if (!strategyData || !user) return;
+
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      await deleteStrategy(strategyData.strategy.id);
+      window.alert("Strategy deleted.");
+      onDeleteClose();
+      router.push("/strategies");
+    } catch (err) {
+      console.error("Failed to delete strategy:", err);
+      const message =
+        err instanceof Error ? err.message : "Failed to delete strategy";
+      if (isAuthError(message)) {
+        router.push("/");
+        return;
+      }
+      setDeleteError(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -206,6 +256,7 @@ export default function StrategyDetailPage({ params }: PageProps) {
   }
 
   const { strategy, cards } = strategyData;
+  const isOwner = Boolean(user && strategy.owner_id && user.uid === strategy.owner_id);
 
   return (
     <div className="absolute inset-0 overflow-y-auto">
@@ -236,6 +287,17 @@ export default function StrategyDetailPage({ params }: PageProps) {
             ))}
           </div>
         </div>
+        {isOwner && (
+          <Button
+            color="danger"
+            variant="bordered"
+            startContent={<Trash2 className="w-4 h-4" />}
+            onPress={onDeleteOpen}
+            isDisabled={isDeleting}
+          >
+            Delete Strategy
+          </Button>
+        )}
         <Button
           color="primary"
           startContent={<Play className="w-4 h-4" />}
@@ -486,6 +548,37 @@ export default function StrategyDetailPage({ params }: PageProps) {
               isLoading={backtestLoading}
             >
               Run Backtest
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
+        <ModalContent>
+          <ModalHeader>Delete Strategy?</ModalHeader>
+          <ModalBody>
+            <p className="text-default-600">
+              This will permanently delete this strategy, all cards, and all
+              backtests. This action cannot be undone.
+            </p>
+            {deleteError && <p className="text-danger text-sm">{deleteError}</p>}
+            {isDeleting && (
+              <div className="flex items-center gap-2 text-default-500">
+                <Spinner size="sm" />
+                <span className="text-sm">Deleting strategy...</span>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={onDeleteClose} isDisabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              color="danger"
+              onPress={handleDeleteStrategy}
+              isLoading={isDeleting}
+            >
+              Delete
             </Button>
           </ModalFooter>
         </ModalContent>
