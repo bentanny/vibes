@@ -579,8 +579,16 @@ function PriceChart({
   ohlcvBars?: OHLCVBar[];
   indicators?: Record<string, Array<Record<string, any>>>;
 }) {
+  console.log('PriceChart received:', {
+    ohlcvBarsLength: ohlcvBars?.length,
+    ohlcvBarsType: typeof ohlcvBars,
+    isArray: Array.isArray(ohlcvBars),
+    firstBar: ohlcvBars?.[0]
+  });
+
   const { chartData, indicatorLabels } = useMemo(() => {
     if (!ohlcvBars?.length) {
+      console.log('No OHLCV bars - returning empty');
       return { chartData: [], indicatorLabels: {} as Record<string, string> };
     }
 
