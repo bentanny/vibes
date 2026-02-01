@@ -748,7 +748,15 @@ function PriceChart({
             legendType="none"
             isAnimationActive={false}
           />
-          <Customized component={CandlestickSeries} />
+          {/* Simple line for debugging - replace with candlesticks later */}
+          <Line
+            yAxisId="price"
+            type="monotone"
+            dataKey="close"
+            stroke="hsl(var(--heroui-primary))"
+            strokeWidth={2}
+            dot={false}
+          />
           <Bar
             dataKey="volume"
             yAxisId="volume"
