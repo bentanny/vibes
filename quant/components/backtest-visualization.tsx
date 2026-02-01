@@ -666,7 +666,7 @@ function PriceChart({
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => formatCompactCurrency(value)}
-            domain={["auto", "auto"]}
+            domain={['dataMin - 1000', 'dataMax + 1000']}
           />
           <YAxis
             yAxisId="volume"
@@ -728,26 +728,6 @@ function PriceChart({
               wrapperStyle={{ fontSize: "11px" }}
             />
           )}
-          <Line
-            yAxisId="price"
-            type="monotone"
-            dataKey="high"
-            stroke="transparent"
-            dot={false}
-            activeDot={false}
-            legendType="none"
-            isAnimationActive={false}
-          />
-          <Line
-            yAxisId="price"
-            type="monotone"
-            dataKey="low"
-            stroke="transparent"
-            dot={false}
-            activeDot={false}
-            legendType="none"
-            isAnimationActive={false}
-          />
           {/* Simple line for debugging - replace with candlesticks later */}
           <Line
             yAxisId="price"
