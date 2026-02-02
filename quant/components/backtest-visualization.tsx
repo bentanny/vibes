@@ -12,6 +12,8 @@ import {
   Pagination,
   Select,
   SelectItem,
+  Accordion,
+  AccordionItem,
 } from "@heroui/react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import {
@@ -184,6 +186,9 @@ export function BacktestVisualization({
       {/* Key Performance Metrics */}
       {statistics && <PerformanceMetrics stats={statistics} initialCash={initialCash} />}
 
+      {/* Advanced Statistics */}
+      {statistics && <AdvancedStatistics stats={statistics} />}
+
       {/* Charts */}
       <Card>
         <CardBody className="p-0">
@@ -330,6 +335,175 @@ function PerformanceMetrics({
         </Card>
       ))}
     </div>
+  );
+}
+
+function AdvancedStatistics({ stats }: { stats: PerformanceStatistics }) {
+  const metrics = [
+    stats.sortino_ratio,
+    stats.information_ratio,
+    stats.treynor_ratio,
+    stats.compounding_annual_return,
+    stats.annual_standard_deviation,
+    stats.value_at_risk_95,
+    stats.alpha,
+    stats.beta,
+    stats.expectancy,
+    stats.profit_loss_ratio,
+    stats.loss_rate,
+  ];
+
+  const hasAdvancedStats = metrics.some((value) => value !== undefined && value !== null);
+  if (!hasAdvancedStats) return null;
+
+  const renderValue = (
+    value: number | undefined,
+    formatter: (val: number) => string = (val) => val.toFixed(2)
+  ) => {
+    if (value === undefined || value === null || Number.isNaN(value)) return "N/A";
+    return formatter(value);
+  };
+
+  const valueClass = (value: number | undefined, tone: "neutral" | "signed" = "signed") => {
+    if (value === undefined || value === null || Number.isNaN(value)) return "text-default-400";
+    if (tone === "neutral") return "text-default-600";
+    return value >= 0 ? "text-success" : "text-danger";
+  };
+
+  const groups = [
+    {
+      key: "risk-adjusted",
+      title: "Risk-Adjusted Returns",
+      grid: "grid grid-cols-1 md:grid-cols-3 gap-4",
+      items: [
+        {
+          label: "Sortino",
+          value: renderValue(stats.sortino_ratio),
+          className: valueClass(stats.sortino_ratio),
+          description: "Downside risk-adjusted return using negative volatility.",
+        },
+        {
+          label: "Information Ratio",
+          value: renderValue(stats.information_ratio),
+          className: valueClass(stats.information_ratio),
+          description: "Active return versus tracking error to the benchmark.",
+        },
+        {
+          label: "Treynor",
+          value: renderValue(stats.treynor_ratio),
+          className: valueClass(stats.treynor_ratio),
+          description: "Return per unit of market risk (beta).",
+        },
+      ],
+    },
+    {
+      key: "performance-risk",
+      title: "Performance & Risk",
+      grid: "grid grid-cols-1 md:grid-cols-3 gap-4",
+      items: [
+        {
+          label: "CAGR",
+          value: renderValue(stats.compounding_annual_return, (val) =>
+            formatPercent(val / 100)
+          ),
+          className: valueClass(stats.compounding_annual_return),
+          description: "Compounded annual growth rate of equity.",
+        },
+        {
+          label: "Annual Volatility",
+          value: renderValue(stats.annual_standard_deviation, formatPercent),
+          className: valueClass(stats.annual_standard_deviation),
+          description: "Annualized standard deviation of returns.",
+        },
+        {
+          label: "VaR 95%",
+          value: renderValue(stats.value_at_risk_95, formatPercent),
+          className: valueClass(stats.value_at_risk_95),
+          description: "Estimated 95% value at risk.",
+        },
+      ],
+    },
+    {
+      key: "market-correlation",
+      title: "Market Correlation",
+      grid: "grid grid-cols-1 md:grid-cols-2 gap-4",
+      items: [
+        {
+          label: "Alpha",
+          value: renderValue(stats.alpha),
+          className: valueClass(stats.alpha),
+          description: "Excess return relative to the benchmark.",
+        },
+        {
+          label: "Beta",
+          value: renderValue(stats.beta),
+          className: valueClass(stats.beta, "neutral"),
+          description: "Sensitivity of returns to market moves.",
+        },
+      ],
+    },
+    {
+      key: "trade-quality",
+      title: "Trade Quality",
+      grid: "grid grid-cols-1 md:grid-cols-3 gap-4",
+      items: [
+        {
+          label: "Expectancy",
+          value: renderValue(stats.expectancy),
+          className: valueClass(stats.expectancy),
+          description: "Average expected return per trade.",
+        },
+        {
+          label: "P/L Ratio",
+          value: renderValue(stats.profit_loss_ratio),
+          className: valueClass(stats.profit_loss_ratio),
+          description: "Average win size divided by average loss size.",
+        },
+        {
+          label: "Loss Rate",
+          value: renderValue(stats.loss_rate, formatPercent),
+          className: valueClass(stats.loss_rate),
+          description: "Percentage of trades that ended in a loss.",
+        },
+      ],
+    },
+  ];
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center gap-2">
+        <Activity className="w-4 h-4 text-default-500" />
+        <div>
+          <h3 className="text-sm font-semibold">Advanced Statistics</h3>
+          <p className="text-xs text-default-500">Additional LEAN portfolio metrics</p>
+        </div>
+      </CardHeader>
+      <Divider />
+      <CardBody className="p-0">
+        <Accordion>
+          {groups.map((group) => (
+            <AccordionItem key={group.key} aria-label={group.title} title={group.title}>
+              <div className={`${group.grid} pb-2`}>
+                {group.items.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-lg border border-default-200 bg-default-50 p-3"
+                  >
+                    <p className="text-xs text-default-500 uppercase tracking-wide">
+                      {item.label}
+                    </p>
+                    <p className={`text-lg font-bold mt-1 ${item.className}`}>
+                      {item.value}
+                    </p>
+                    <p className="text-xs text-default-500 mt-1">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </CardBody>
+    </Card>
   );
 }
 
