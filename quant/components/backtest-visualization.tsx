@@ -746,6 +746,33 @@ function ReturnsChart({ data }: { data: { timeStr: string; return: number }[] })
   );
 }
 
+/**
+ * Downsample OHLCV bars to a target count by aggregating multiple bars.
+ * Preserves OHLCV semantics: open from first bar, high/low from all bars, close from last bar.
+ */
+function downsampleOHLCV(bars: OHLCVBar[], targetCount: number = 500): OHLCVBar[] {
+  if (bars.length <= targetCount) return bars;
+
+  const step = Math.ceil(bars.length / targetCount);
+  const downsampled: OHLCVBar[] = [];
+
+  for (let i = 0; i < bars.length; i += step) {
+    const chunk = bars.slice(i, Math.min(i + step, bars.length));
+    if (chunk.length === 0) continue;
+
+    downsampled.push({
+      time: chunk[0].time,
+      open: chunk[0].open,
+      high: Math.max(...chunk.map((b) => b.high)),
+      low: Math.min(...chunk.map((b) => b.low)),
+      close: chunk[chunk.length - 1].close,
+      volume: chunk.reduce((sum, b) => sum + b.volume, 0),
+    });
+  }
+
+  return downsampled;
+}
+
 function PriceChart({
   ohlcvBars,
   indicators,
@@ -760,8 +787,13 @@ function PriceChart({
     firstBar: ohlcvBars?.[0]
   });
 
+  const downsampledBars = useMemo(() => {
+    if (!ohlcvBars) return undefined;
+    return downsampleOHLCV(ohlcvBars, 500);
+  }, [ohlcvBars]);
+
   const { chartData, indicatorLabels } = useMemo(() => {
-    if (!ohlcvBars?.length) {
+    if (!downsampledBars?.length) {
       console.log('No OHLCV bars - returning empty');
       return { chartData: [], indicatorLabels: {} as Record<string, string> };
     }
@@ -793,7 +825,7 @@ function PriceChart({
       }
     }
 
-    const data = ohlcvBars.map((bar) => {
+    const data = downsampledBars.map((bar) => {
       const timeMs = new Date(bar.time).getTime();
       return {
         time: timeMs,
@@ -804,9 +836,9 @@ function PriceChart({
     });
 
     return { chartData: data, indicatorLabels: labels };
-  }, [ohlcvBars, indicators]);
+  }, [downsampledBars, indicators]);
 
-  if (!ohlcvBars?.length) {
+  if (!downsampledBars?.length) {
     return (
       <div className="h-80 flex items-center justify-center text-default-500">
         No price data available
