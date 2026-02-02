@@ -156,19 +156,53 @@ export interface BacktestResults {
 }
 
 export interface PerformanceStatistics {
+  // Basic metrics (existing - keep for backward compatibility)
   total_return: number;
   annual_return: number;
-  sharpe_ratio?: number;
-  sortino_ratio?: number;
   max_drawdown: number;
   total_trades: number;
   winning_trades: number;
   losing_trades: number;
   win_rate: number;
-  profit_factor?: number;
   average_win: number;
   average_loss: number;
   net_profit: number;
+  profit_factor?: number;
+
+  // LEAN PortfolioStatistics (Risk-Adjusted Returns)
+  sharpe_ratio?: number;
+  sortino_ratio?: number;
+  probabilistic_sharpe_ratio?: number;
+  information_ratio?: number;
+  treynor_ratio?: number;
+
+  // LEAN PortfolioStatistics (Performance Metrics)
+  compounding_annual_return?: number;
+  total_net_profit?: number;
+  start_equity?: number;
+  end_equity?: number;
+
+  // LEAN PortfolioStatistics (Risk Metrics)
+  drawdown?: number;
+  annual_standard_deviation?: number;
+  annual_variance?: number;
+  tracking_error?: number;
+  value_at_risk_99?: number;
+  value_at_risk_95?: number;
+
+  // LEAN PortfolioStatistics (Market Correlation)
+  alpha?: number;
+  beta?: number;
+
+  // LEAN PortfolioStatistics (Trade Statistics)
+  loss_rate?: number;
+  average_win_rate?: number;
+  average_loss_rate?: number;
+  profit_loss_ratio?: number;
+  expectancy?: number;
+
+  // LEAN PortfolioStatistics (Activity Metrics)
+  portfolio_turnover?: number;
 }
 
 export interface Trade {
