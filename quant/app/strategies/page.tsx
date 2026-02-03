@@ -11,12 +11,26 @@ import {
   Spinner,
   Divider,
   Tooltip,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
-import { Plus, ChevronRight, TrendingUp, TrendingDown, Clock, Layers, Activity } from "lucide-react";
+import {
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  Layers,
+  Activity,
+  Trash,
+} from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getStrategies,
   getBacktestHistory,
+  deleteStrategy,
   Strategy,
   BacktestListItem,
   formatPercent,
@@ -34,6 +48,10 @@ export default function StrategiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [latestBacktests, setLatestBacktests] = useState<LatestBacktestCache>({});
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [strategyToDelete, setStrategyToDelete] = useState<Strategy | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -78,6 +96,38 @@ export default function StrategiesPage() {
     }
   }
 
+  function openDeleteModal(strategy: Strategy) {
+    setStrategyToDelete(strategy);
+    setDeleteError(null);
+    setIsDeleteOpen(true);
+  }
+
+  function closeDeleteModal(force = false) {
+    if (isDeleting && !force) return;
+    setIsDeleteOpen(false);
+    setStrategyToDelete(null);
+    setDeleteError(null);
+  }
+
+  async function handleDeleteStrategy() {
+    if (!strategyToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      await deleteStrategy(strategyToDelete.id);
+      closeDeleteModal(true);
+      await loadStrategies();
+    } catch (err) {
+      console.error("Failed to delete strategy:", err);
+      setDeleteError(
+        err instanceof Error ? err.message : "Failed to delete strategy",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -109,56 +159,110 @@ export default function StrategiesPage() {
   return (
     <div className="absolute inset-0 overflow-y-auto">
       <div className="container mx-auto px-4 py-8 pt-24 pb-12 max-w-6xl">
-      {/* Header - pt-24 accounts for fixed navbar */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">My Strategies</h1>
-          <p className="text-default-500 mt-1">
-            {strategies.length > 0
-              ? `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
-              : "Manage your trading strategies and run backtests"}
-          </p>
-        </div>
-        <Button
-          color="primary"
-          startContent={<Plus className="w-4 h-4" />}
-          onPress={() => router.push("/")}
-        >
-          New Strategy
-        </Button>
-      </div>
-
-      {/* Strategies Grid */}
-      {strategies.length === 0 ? (
-        <Card className="bg-default-50">
-          <CardBody className="py-12 text-center">
-            <Layers className="w-12 h-12 mx-auto text-default-300 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No strategies yet</h3>
-            <p className="text-default-500 mb-6">
-              Create your first trading strategy using our AI assistant
+        {/* Header - pt-24 accounts for fixed navbar */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">My Strategies</h1>
+            <p className="text-default-500 mt-1">
+              {strategies.length > 0
+                ? `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
+                : "Manage your trading strategies and run backtests"}
             </p>
-            <Button
-              color="primary"
-              startContent={<Plus className="w-4 h-4" />}
-              onPress={() => router.push("/")}
-            >
-              Create Strategy
-            </Button>
-          </CardBody>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {strategies.map((strategy) => (
-            <StrategyCard
-              key={strategy.id}
-              strategy={strategy}
-              latestBacktest={latestBacktests[strategy.id]}
-              onClick={() => router.push(`/strategies/${strategy.id}`)}
-            />
-          ))}
+          </div>
         </div>
-      )}
+
+        {/* Strategies Grid */}
+        {strategies.length === 0 ? (
+          <Card className="bg-default-50">
+            <CardBody className="py-12">
+              <div className="text-center">
+                <Layers className="w-12 h-12 mx-auto text-default-300 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">
+                  Welcome — add your first strategy
+                </h3>
+                <p className="text-default-500 mb-6">
+                  Strategies are created through Claude Code via the Vibe Trade MCP
+                  server.
+                </p>
+              </div>
+
+              <div className="mx-auto max-w-2xl space-y-4 text-sm text-default-600">
+                <p className="font-medium text-default-700">
+                  Add the MCP server in Claude Code:
+                </p>
+                <ol className="space-y-2 list-decimal list-inside">
+                  <li>Open Claude Code → Settings → MCP.</li>
+                  <li>Add the server configuration to your MCP settings JSON.</li>
+                  <li>Save and restart Claude Code.</li>
+                </ol>
+                <div className="rounded-lg border border-default-200 bg-default-100/60 p-4">
+                  <pre className="whitespace-pre-wrap text-xs text-default-700">
+{`{
+  "mcpServers": {
+    "vibe-trade": {
+      "command": "uvx",
+      "args": ["--from", "vibe-trade-mcp", "vibe-trade-mcp"]
+    }
+  }
+}`}
+                  </pre>
+                </div>
+                <p className="text-xs text-default-500">
+                  Once connected, ask Claude Code to create a strategy and it will
+                  appear here automatically.
+                </p>
+              </div>
+            </CardBody>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {strategies.map((strategy) => (
+              <StrategyCard
+                key={strategy.id}
+                strategy={strategy}
+                latestBacktest={latestBacktests[strategy.id]}
+                onClick={() => router.push(`/strategies/${strategy.id}`)}
+                onDelete={() => openDeleteModal(strategy)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+      <Modal isOpen={isDeleteOpen} onClose={closeDeleteModal}>
+        <ModalContent>
+          <ModalHeader>Delete Strategy?</ModalHeader>
+          <ModalBody>
+            <p className="text-default-600">
+              This will permanently delete this strategy, all cards, and all
+              backtests. This action cannot be undone.
+            </p>
+            {strategyToDelete && (
+              <p className="text-sm text-default-500">
+                Strategy: <span className="font-medium">{strategyToDelete.name}</span>
+              </p>
+            )}
+            {deleteError && <p className="text-danger text-sm">{deleteError}</p>}
+            {isDeleting && (
+              <div className="flex items-center gap-2 text-default-500">
+                <Spinner size="sm" />
+                <span className="text-sm">Deleting strategy...</span>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={closeDeleteModal} isDisabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              color="danger"
+              onPress={handleDeleteStrategy}
+              isLoading={isDeleting}
+            >
+              Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
@@ -167,9 +271,15 @@ interface StrategyCardProps {
   strategy: Strategy;
   latestBacktest: BacktestListItem | null | undefined;
   onClick: () => void;
+  onDelete: () => void;
 }
 
-function StrategyCard({ strategy, latestBacktest, onClick }: StrategyCardProps) {
+function StrategyCard({
+  strategy,
+  latestBacktest,
+  onClick,
+  onDelete,
+}: StrategyCardProps) {
   const cardCount = strategy.attachments?.length || 0;
   const hasPerformance = latestBacktest?.status === "completed" && latestBacktest.total_return !== null;
 
@@ -177,7 +287,7 @@ function StrategyCard({ strategy, latestBacktest, onClick }: StrategyCardProps) 
     <Card
       isPressable
       onPress={onClick}
-      className="hover:bg-default-50 transition-colors"
+      className="group hover:bg-default-50 transition-colors"
     >
       <CardHeader className="flex justify-between items-start pb-2">
         <div className="flex-1 min-w-0">
@@ -197,7 +307,23 @@ function StrategyCard({ strategy, latestBacktest, onClick }: StrategyCardProps) 
             )}
           </div>
         </div>
-        <ChevronRight className="w-5 h-5 text-default-400 flex-shrink-0" />
+        <div className="flex items-center gap-2">
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            color="danger"
+            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            aria-label={`Delete ${strategy.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash className="w-4 h-4" />
+          </Button>
+          <ChevronRight className="w-5 h-5 text-default-400 flex-shrink-0" />
+        </div>
       </CardHeader>
 
       <Divider />
