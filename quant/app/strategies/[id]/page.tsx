@@ -25,7 +25,6 @@ import {
   Calendar,
   DollarSign,
   BarChart3,
-  Target,
   History,
   TrendingUp,
   TrendingDown,
@@ -33,7 +32,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { BacktestVisualization } from "@/components/backtest-visualization";
-import { CardParamsSummary } from "@/components/card-params-editor";
+import { StrategyCardsTree } from "@/components/strategy-cards-tree";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getStrategy,
@@ -70,8 +69,7 @@ export default function StrategyDetailPage({ params }: PageProps) {
     null
   );
   const [backtestForm, setBacktestForm] = useState({
-    startDate: getDefaultStartDate(),
-    endDate: getDefaultEndDate(),
+    lookback: "3m",
     initialCash: "100000",
   });
 
@@ -159,8 +157,7 @@ export default function StrategyDetailPage({ params }: PageProps) {
 
       const result = await runBacktest({
         strategy_id: strategyData.strategy.id,
-        start_date: new Date(backtestForm.startDate).toISOString(),
-        end_date: new Date(backtestForm.endDate).toISOString(),
+        lookback: backtestForm.lookback,
         initial_cash: parseFloat(backtestForm.initialCash),
       });
 
@@ -176,8 +173,8 @@ export default function StrategyDetailPage({ params }: PageProps) {
         backtest_id: "",
         status: "failed",
         strategy_id: strategyData.strategy.id,
-        start_date: backtestForm.startDate,
-        end_date: backtestForm.endDate,
+        start_date: "",
+        end_date: "",
         symbol: strategyData.strategy.universe[0] || "BTC-USD",
         error: err instanceof Error ? err.message : "Backtest failed",
       });
@@ -311,7 +308,7 @@ export default function StrategyDetailPage({ params }: PageProps) {
       </div>
 
       {/* Strategy Info */}
-      <div className="grid gap-6 lg:grid-cols-3 mb-6">
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
         <Card className="bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm">
           <CardBody className="flex flex-row items-center gap-3">
             <div className="p-2 bg-amber-100 rounded-lg">
@@ -334,17 +331,6 @@ export default function StrategyDetailPage({ params }: PageProps) {
             </div>
           </CardBody>
         </Card>
-        <Card className="bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm">
-          <CardBody className="flex flex-row items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <Target className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm text-stone-500">Version</p>
-              <p className="font-semibold text-stone-900">v{strategy.version}</p>
-            </div>
-          </CardBody>
-        </Card>
       </div>
 
       {/* Cards Section */}
@@ -354,13 +340,7 @@ export default function StrategyDetailPage({ params }: PageProps) {
         </CardHeader>
         <Divider className="bg-stone-200" />
         <CardBody>
-          {cards.length === 0 ? (
-            <p className="text-stone-500 text-center py-4">
-              No cards attached to this strategy
-            </p>
-          ) : (
-            <CardParamsSummary cards={cards} />
-          )}
+          <StrategyCardsTree cards={cards} />
         </CardBody>
       </Card>
 
@@ -496,25 +476,28 @@ export default function StrategyDetailPage({ params }: PageProps) {
           <ModalHeader className="text-stone-900">Run Backtest</ModalHeader>
           <ModalBody>
             <div className="space-y-6">
-              {/* Date Range & Cash */}
+              {/* Lookback Period */}
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    type="date"
-                    label="Start Date"
-                    value={backtestForm.startDate}
-                    onChange={(e) =>
-                      setBacktestForm((f) => ({ ...f, startDate: e.target.value }))
-                    }
-                  />
-                  <Input
-                    type="date"
-                    label="End Date"
-                    value={backtestForm.endDate}
-                    onChange={(e) =>
-                      setBacktestForm((f) => ({ ...f, endDate: e.target.value }))
-                    }
-                  />
+                <div>
+                  <p className="text-sm font-medium text-stone-700 mb-2">Lookback Period</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: "1m", label: "1 Month" },
+                      { value: "3m", label: "3 Months" },
+                      { value: "6m", label: "6 Months" },
+                      { value: "1y", label: "1 Year" },
+                    ].map((period) => (
+                      <Button
+                        key={period.value}
+                        size="sm"
+                        variant={backtestForm.lookback === period.value ? "solid" : "bordered"}
+                        color={backtestForm.lookback === period.value ? "primary" : "default"}
+                        onPress={() => setBacktestForm((f) => ({ ...f, lookback: period.value }))}
+                      >
+                        {period.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
                 {/* Symbol is extracted from strategy's entry card context */}
                 <div className="p-3 bg-stone-100 rounded-lg">
@@ -589,14 +572,4 @@ export default function StrategyDetailPage({ params }: PageProps) {
       </div>
     </div>
   );
-}
-
-function getDefaultStartDate(): string {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 1);
-  return date.toISOString().split("T")[0];
-}
-
-function getDefaultEndDate(): string {
-  return new Date().toISOString().split("T")[0];
 }

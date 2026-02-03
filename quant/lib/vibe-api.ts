@@ -86,13 +86,17 @@ export interface Attachment {
 
 export interface Card {
   id: string;
-  archetype_id: string;
-  name: string;
+  type: string;  // Archetype identifier (e.g., 'entry.trend_pullback')
   slots: Record<string, unknown>;
+  schema_etag: string;
   created_at: string;
   updated_at: string;
+  // Added by API from attachment:
   role?: string;
   enabled?: boolean;
+  // Legacy aliases (for backwards compatibility)
+  archetype_id?: string;
+  name?: string;
 }
 
 export interface StrategyWithCards {
@@ -103,8 +107,7 @@ export interface StrategyWithCards {
 
 export interface BacktestRequest {
   strategy_id: string;
-  start_date: string; // ISO date string
-  end_date: string;
+  lookback: string; // e.g., "3m", "6m", "1y"
   initial_cash?: number;
 }
 
