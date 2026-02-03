@@ -44,7 +44,6 @@ import {
   BacktestResponse,
   BacktestListItem,
   formatPercent,
-  getStatusColor,
 } from "@/lib/vibe-api";
 import { formatDisplayDate, formatDateRange, formatRelativeTime } from "@/lib/utils";
 
@@ -273,13 +272,6 @@ export default function StrategyDetailPage({ params }: PageProps) {
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-stone-900">{strategy.name}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <Chip
-              size="sm"
-              color={getStatusColor(strategy.status) as "default" | "primary" | "secondary" | "success" | "warning" | "danger"}
-              variant="flat"
-            >
-              {strategy.status}
-            </Chip>
             {strategy.universe.map((symbol) => (
               <Chip key={symbol} size="sm" variant="bordered">
                 {symbol}

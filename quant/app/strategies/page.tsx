@@ -34,7 +34,6 @@ import {
   Strategy,
   BacktestListItem,
   formatPercent,
-  getStatusColor,
 } from "@/lib/vibe-api";
 import { getRoleDotColor, formatRelativeTime } from "@/lib/utils";
 
@@ -308,13 +307,6 @@ function StrategyCard({
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-lg truncate text-stone-900">{strategy.name}</h3>
           <div className="flex items-center gap-2 mt-1">
-            <Chip
-              size="sm"
-              color={getStatusColor(strategy.status) as "default" | "primary" | "secondary" | "success" | "warning" | "danger"}
-              variant="flat"
-            >
-              {strategy.status}
-            </Chip>
             {strategy.universe.length > 0 && (
               <Chip size="sm" variant="bordered">
                 {strategy.universe[0]}

@@ -58,7 +58,7 @@ export default function Template({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black">
+    <div className="relative w-full h-full overflow-hidden bg-background">
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={pathname}
