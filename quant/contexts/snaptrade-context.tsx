@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
-import { useSession } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context";
 
 export interface SnapTradeAccount {
   id: string;
@@ -106,7 +106,7 @@ interface SnapTradeContextType {
 const SnapTradeContext = createContext<SnapTradeContextType | null>(null);
 
 export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
-  const { status: sessionStatus } = useSession();
+  const { user, loading: authLoading, getIdToken } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -118,10 +118,25 @@ export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
   }>({ trading: [], readOnly: [] });
   const [hasFetched, setHasFetched] = useState(false);
 
+  // Helper to get auth headers
+  const getAuthHeaders = useCallback(async () => {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    const token = await getIdToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }, [getIdToken]);
+
   // Check if user has any connected accounts
   const checkConnection = useCallback(async () => {
     try {
-      const response = await fetch("/api/snaptrade/accounts");
+      const headers = await getAuthHeaders();
+      const response = await fetch("/api/snaptrade/accounts", { headers });
       const data = await response.json();
 
       if (response.ok && data.accounts?.length > 0) {
@@ -134,12 +149,13 @@ export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setIsConnected(false);
     }
-  }, []);
+  }, [getAuthHeaders]);
 
-  // Fetch brokerages (doesn't require auth)
+  // Fetch brokerages
   const fetchBrokeragesInternal = useCallback(async () => {
     try {
-      const response = await fetch("/api/snaptrade/brokerages");
+      const headers = await getAuthHeaders();
+      const response = await fetch("/api/snaptrade/brokerages", { headers });
       const data = await response.json();
 
       if (response.ok) {
@@ -148,27 +164,27 @@ export function SnapTradeProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error("Failed to fetch brokerages:", err);
     }
-  }, []);
+  }, [getAuthHeaders]);
 
-  // Initialize when session is ready
+  // Initialize when auth is ready
   useEffect(() => {
     const init = async () => {
-      if (sessionStatus === "authenticated" && !hasFetched) {
+      if (!authLoading && user && !hasFetched) {
         setIsInitializing(true);
         await checkConnection();
         await fetchBrokeragesInternal();
         setIsInitializing(false);
         setHasFetched(true);
-      } else if (sessionStatus === "unauthenticated") {
+      } else if (!authLoading && !user) {
         // User not signed in - no accounts to fetch
         setIsInitializing(false);
         setIsConnected(false);
         setAccounts([]);
       }
-      // If sessionStatus is "loading", wait for it to resolve
+      // If authLoading is true, wait for it to resolve
     };
     init();
-  }, [sessionStatus, hasFetched, checkConnection, fetchBrokeragesInternal]);
+  }, [authLoading, user, hasFetched, checkConnection, fetchBrokeragesInternal]);
 
   /**
    * Open the SnapTrade connection portal to link a brokerage
