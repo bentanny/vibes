@@ -188,27 +188,36 @@ export default function StrategiesPage() {
 
               <div className="mx-auto max-w-2xl space-y-4 text-sm text-default-600">
                 <p className="font-medium text-default-700">
-                  Add the MCP server in Claude Code:
+                  Connect to Quant in Claude:
                 </p>
-                <ol className="space-y-2 list-decimal list-inside">
-                  <li>Open Claude Code → Settings → MCP.</li>
-                  <li>Add the server configuration to your MCP settings JSON.</li>
-                  <li>Save and restart Claude Code.</li>
-                </ol>
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-medium text-default-600 mb-1">Claude Desktop:</p>
+                    <ol className="space-y-1 list-decimal list-inside text-xs">
+                      <li>Open Claude Desktop → Settings → Connectors</li>
+                      <li>Click "Add custom connector"</li>
+                      <li>Name: <span className="font-mono">Quant</span></li>
+                      <li>Enter the remote MCP server URL below</li>
+                      <li>Authenticate with Google when prompted</li>
+                    </ol>
+                  </div>
+                  <div>
+                    <p className="font-medium text-default-600 mb-1">Claude Code CLI:</p>
+                    <ol className="space-y-1 list-decimal list-inside text-xs">
+                      <li>Run: <span className="font-mono">claude mcp add</span></li>
+                      <li>Enter the remote MCP server URL below</li>
+                      <li>Authenticate with Google when prompted</li>
+                    </ol>
+                  </div>
+                </div>
                 <div className="rounded-lg border border-default-200 bg-default-100/60 p-4">
-                  <pre className="whitespace-pre-wrap text-xs text-default-700">
-{`{
-  "mcpServers": {
-    "vibe-trade": {
-      "command": "uvx",
-      "args": ["--from", "vibe-trade-mcp", "vibe-trade-mcp"]
-    }
-  }
-}`}
+                  <p className="text-xs font-medium text-default-700 mb-2">Remote MCP Server URL:</p>
+                  <pre className="whitespace-pre-wrap text-xs text-default-700 font-mono">
+https://vibe-trade-mcp-kff5sbwvca-uc.a.run.app/mcp
                   </pre>
                 </div>
                 <p className="text-xs text-default-500">
-                  Once connected, ask Claude Code to create a strategy and it will
+                  Once connected, ask Claude to create a trading strategy and it will
                   appear here automatically.
                 </p>
               </div>
