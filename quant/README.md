@@ -122,6 +122,35 @@ langgraph_api_url = "https://vibe-trade-agent-kff5sbwvca-uc.a.run.app"
 
 For local development, create a `.env` file with `NEXT_PUBLIC_FIREBASE_*` variables.
 
+### Local UI Against Prod Services
+
+If you want to run the UI locally but point it at production services (API, Execution, MCP/LangGraph, Firebase),
+set the env vars below in `vibe-trade-ui/quant/.env.local` and restart the dev server.
+Do **not** set the auth emulator URL when targeting prod.
+
+```bash
+# vibe-trade-ui/quant/.env.local
+NEXT_PUBLIC_VIBE_API_URL="https://<prod-vibe-trade-api>"
+NEXT_PUBLIC_EXECUTION_API_URL="https://<prod-vibe-trade-execution>"
+NEXT_PUBLIC_LANGGRAPH_API_URL="https://<prod-vibe-trade-agent>"
+
+# Firebase (prod project)
+NEXT_PUBLIC_FIREBASE_API_KEY="..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="..."
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="..."
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="..."
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+NEXT_PUBLIC_FIREBASE_APP_ID="..."
+
+# IMPORTANT: unset/omit this when using prod auth
+# NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_URL=""
+```
+
+Notes:
+- For Next.js dev, env changes are read at startup; restart `make dev` after edits.
+- Server-side routes may also read `VIBE_TRADE_API_URL` (non-`NEXT_PUBLIC`). If you see server-side calls
+  still going to localhost, set `VIBE_TRADE_API_URL` in the same file.
+
 ### Deploy
 
 ```bash
