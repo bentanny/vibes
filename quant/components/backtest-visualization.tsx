@@ -221,7 +221,11 @@ export function BacktestVisualization({
               }
             >
               <div className="p-4">
-                <DrawdownChart data={equityData} />
+                <DrawdownChart
+                  data={equityData}
+                  entries={tradeMarkers.entries}
+                  exits={tradeMarkers.exits}
+                />
               </div>
             </Tab>
             <Tab
@@ -234,7 +238,11 @@ export function BacktestVisualization({
               }
             >
               <div className="p-4">
-                <ReturnsChart data={equityData} />
+                <ReturnsChart
+                  data={equityData}
+                  entries={tradeMarkers.entries}
+                  exits={tradeMarkers.exits}
+                />
               </div>
             </Tab>
             <Tab
@@ -632,7 +640,15 @@ function EquityCurveChart({
   );
 }
 
-function DrawdownChart({ data }: { data: { timeStr: string; drawdown: number }[] }) {
+function DrawdownChart({
+  data,
+  entries,
+  exits,
+}: {
+  data: { time: number; timeStr: string; drawdown: number }[];
+  entries: { time: number; equity: number }[];
+  exits: { time: number; equity: number; pnl: number }[];
+}) {
   if (!data.length) {
     return (
       <div className="h-80 flex items-center justify-center text-default-500">
@@ -643,10 +659,24 @@ function DrawdownChart({ data }: { data: { timeStr: string; drawdown: number }[]
 
   const maxDrawdown = Math.min(...data.map((d) => -Math.abs(d.drawdown)));
 
+  // Combine data with trade markers
+  const chartData = data.map((point) => {
+    const entry = entries.find((e) => Math.abs(e.time - point.time) < 3600000);
+    const exit = exits.find((e) => Math.abs(e.time - point.time) < 3600000);
+    const drawdownValue = -Math.abs(point.drawdown);
+    return {
+      ...point,
+      drawdownValue,
+      entry: entry ? drawdownValue : null,
+      exit: exit ? drawdownValue : null,
+      exitPnl: exit?.pnl,
+    };
+  });
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+        <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis
             dataKey="timeStr"
@@ -671,6 +701,19 @@ function DrawdownChart({ data }: { data: { timeStr: string; drawdown: number }[]
                   <p className="font-semibold text-danger">
                     {(-Math.abs(data.drawdown)).toFixed(2)}%
                   </p>
+                  {data.entry && (
+                    <p className="text-xs text-success mt-1">
+                      <ArrowUpCircle className="w-3 h-3 inline mr-1" />
+                      Entry
+                    </p>
+                  )}
+                  {data.exit && (
+                    <p className={`text-xs mt-1 ${data.exitPnl >= 0 ? "text-success" : "text-danger"}`}>
+                      <ArrowDownCircle className="w-3 h-3 inline mr-1" />
+                      Exit ({data.exitPnl >= 0 ? "+" : ""}
+                      {formatCurrency(data.exitPnl)})
+                    </p>
+                  )}
                 </div>
               );
             }}
@@ -678,19 +721,51 @@ function DrawdownChart({ data }: { data: { timeStr: string; drawdown: number }[]
           <ReferenceLine y={0} stroke="#888" />
           <Area
             type="monotone"
-            dataKey={(d: { drawdown: number }) => -Math.abs(d.drawdown)}
+            dataKey="drawdownValue"
             stroke="hsl(var(--heroui-danger))"
             fill="hsl(var(--heroui-danger))"
             fillOpacity={0.3}
             strokeWidth={2}
           />
+          <Scatter
+            dataKey="entry"
+            fill="hsl(var(--heroui-success))"
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-success))" />;
+            }}
+          />
+          <Scatter
+            dataKey="exit"
+            fill="hsl(var(--heroui-danger))"
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-danger))" stroke="white" strokeWidth={1} />;
+            }}
+          />
         </ComposedChart>
       </ResponsiveContainer>
+      <div className="flex justify-center gap-6 mt-2 text-xs text-default-500">
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-full bg-success" /> Entry
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-full bg-danger" /> Exit
+        </span>
+      </div>
     </div>
   );
 }
 
-function ReturnsChart({ data }: { data: { timeStr: string; return: number }[] }) {
+function ReturnsChart({
+  data,
+  entries,
+  exits,
+}: {
+  data: { time: number; timeStr: string; return: number }[];
+  entries: { time: number; equity: number }[];
+  exits: { time: number; equity: number; pnl: number }[];
+}) {
   if (!data.length) {
     return (
       <div className="h-80 flex items-center justify-center text-default-500">
@@ -699,10 +774,22 @@ function ReturnsChart({ data }: { data: { timeStr: string; return: number }[] })
     );
   }
 
+  // Combine data with trade markers
+  const chartData = data.map((point) => {
+    const entry = entries.find((e) => Math.abs(e.time - point.time) < 3600000);
+    const exit = exits.find((e) => Math.abs(e.time - point.time) < 3600000);
+    return {
+      ...point,
+      entry: entry ? point.return : null,
+      exit: exit ? point.return : null,
+      exitPnl: exit?.pnl,
+    };
+  });
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+        <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis
             dataKey="timeStr"
@@ -729,6 +816,19 @@ function ReturnsChart({ data }: { data: { timeStr: string; return: number }[] })
                     {data.return >= 0 ? "+" : ""}
                     {data.return.toFixed(2)}%
                   </p>
+                  {data.entry && (
+                    <p className="text-xs text-success mt-1">
+                      <ArrowUpCircle className="w-3 h-3 inline mr-1" />
+                      Entry
+                    </p>
+                  )}
+                  {data.exit && (
+                    <p className={`text-xs mt-1 ${data.exitPnl >= 0 ? "text-success" : "text-danger"}`}>
+                      <ArrowDownCircle className="w-3 h-3 inline mr-1" />
+                      Exit ({data.exitPnl >= 0 ? "+" : ""}
+                      {formatCurrency(data.exitPnl)})
+                    </p>
+                  )}
                 </div>
               );
             }}
@@ -741,8 +841,32 @@ function ReturnsChart({ data }: { data: { timeStr: string; return: number }[] })
             strokeWidth={2}
             dot={false}
           />
-        </LineChart>
+          <Scatter
+            dataKey="entry"
+            fill="hsl(var(--heroui-success))"
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-success))" />;
+            }}
+          />
+          <Scatter
+            dataKey="exit"
+            fill="hsl(var(--heroui-danger))"
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return <circle cx={props.cx} cy={props.cy} r={4} fill="hsl(var(--heroui-danger))" />;
+            }}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
+      <div className="flex justify-center gap-6 mt-2 text-xs text-default-500">
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-full bg-success" /> Entry
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-full bg-danger" /> Exit
+        </span>
+      </div>
     </div>
   );
 }
