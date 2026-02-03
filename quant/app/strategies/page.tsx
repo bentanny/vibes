@@ -294,12 +294,17 @@ function StrategyCard({
   const hasPerformance = latestBacktest?.status === "completed" && latestBacktest.total_return !== null;
 
   return (
-    <Card
-      isPressable
-      onPress={onClick}
-      className="group bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm hover:bg-white hover:shadow-md transition-all"
+    <div
+      onClick={onClick}
+      className="cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
     >
-      <CardHeader className="flex justify-between items-start pb-2">
+      <Card
+        className="group bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm hover:bg-white hover:shadow-md transition-all"
+      >
+        <CardHeader className="flex justify-between items-start pb-2">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-lg truncate text-stone-900">{strategy.name}</h3>
           <div className="flex items-center gap-2 mt-1">
@@ -402,7 +407,8 @@ function StrategyCard({
           </div>
         )}
       </CardBody>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
