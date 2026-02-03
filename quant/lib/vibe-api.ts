@@ -278,9 +278,10 @@ export async function getStrategyByThreadId(
 export async function runBacktest(
   request: BacktestRequest
 ): Promise<BacktestResponse> {
-  return vibeApiFetch<BacktestResponse>("/backtest", {
+  const { strategy_id, ...backtestParams } = request;
+  return vibeApiFetch<BacktestResponse>(`/backtest/${strategy_id}`, {
     method: "POST",
-    body: JSON.stringify(request),
+    body: JSON.stringify(backtestParams),
   });
 }
 
