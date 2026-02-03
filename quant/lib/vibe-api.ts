@@ -1,7 +1,7 @@
 /**
  * Vibe Trade API Client
  *
- * Client for interacting with vibe-trade-api and vibe-trade-execution services.
+ * Client for interacting with vibe-trade-api service.
  */
 
 import { auth } from "./firebase";
@@ -11,9 +11,6 @@ const VIBE_API_URL =
   process.env.NEXT_PUBLIC_VIBE_API_URL ||
   "https://vibe-trade-api-kff5sbwvca-uc.a.run.app";
 
-const EXECUTION_API_URL =
-  process.env.NEXT_PUBLIC_EXECUTION_API_URL ||
-  "https://vibe-trade-execution-kff5sbwvca-uc.a.run.app";
 
 /**
  * Get authorization headers with Firebase ID token
@@ -60,29 +57,6 @@ async function vibeApiFetch<T>(
   return response.json();
 }
 
-/**
- * Make an authenticated request to the Execution API
- */
-async function executionApiFetch<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const headers = await getAuthHeaders();
-  const response = await fetch(`${EXECUTION_API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      ...headers,
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.detail || error.error || `API error: ${response.status}`);
-  }
-
-  return response.json();
-}
 
 // =============================================================================
 // Types
@@ -304,7 +278,7 @@ export async function getStrategyByThreadId(
 export async function runBacktest(
   request: BacktestRequest
 ): Promise<BacktestResponse> {
-  return executionApiFetch<BacktestResponse>("/backtest", {
+  return vibeApiFetch<BacktestResponse>("/backtest", {
     method: "POST",
     body: JSON.stringify(request),
   });
@@ -316,7 +290,7 @@ export async function runBacktest(
 export async function getBacktestStatus(
   backtestId: string
 ): Promise<BacktestResponse> {
-  return executionApiFetch<BacktestResponse>(`/backtest/${backtestId}`);
+  return vibeApiFetch<BacktestResponse>(`/backtest/${backtestId}`);
 }
 
 /**
@@ -326,7 +300,7 @@ export async function getBacktestHistory(
   strategyId: string,
   limit: number = 20
 ): Promise<BacktestListResponse> {
-  return executionApiFetch<BacktestListResponse>(
+  return vibeApiFetch<BacktestListResponse>(
     `/backtest/strategy/${strategyId}?limit=${limit}`
   );
 }
