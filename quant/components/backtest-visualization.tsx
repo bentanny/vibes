@@ -250,6 +250,7 @@ export function BacktestVisualization({
                 <PriceChart
                   ohlcvBars={result.results.ohlcv_bars}
                   indicators={result.results.indicators}
+                  trades={result.results.trades}
                 />
               </div>
             </Tab>
@@ -776,20 +777,16 @@ function downsampleOHLCV(bars: OHLCVBar[], targetCount: number = 500): OHLCVBar[
 function PriceChart({
   ohlcvBars,
   indicators,
+  trades,
 }: {
   ohlcvBars?: OHLCVBar[];
   indicators?: Record<string, Array<Record<string, any>>>;
+  trades?: Trade[];
 }) {
-  console.log('PriceChart received:', {
-    ohlcvBarsLength: ohlcvBars?.length,
-    ohlcvBarsType: typeof ohlcvBars,
-    isArray: Array.isArray(ohlcvBars),
-    firstBar: ohlcvBars?.[0]
-  });
 
   const downsampledBars = useMemo(() => {
     if (!ohlcvBars) return undefined;
-    return downsampleOHLCV(ohlcvBars, 500);
+    return downsampleOHLCV(ohlcvBars, 100);
   }, [ohlcvBars]);
 
   const { chartData, indicatorLabels } = useMemo(() => {
@@ -825,18 +822,78 @@ function PriceChart({
       }
     }
 
-    const data = downsampledBars.map((bar) => {
+    // Build arrays of trade times for entry/exit
+    const entryTrades: { time: number; price: number }[] = [];
+    const exitTrades: { time: number; price: number; pnl: number }[] = [];
+
+    if (trades) {
+      trades.forEach((trade) => {
+        const entryTime = new Date(trade.entry_time).getTime();
+        entryTrades.push({ time: entryTime, price: trade.entry_price });
+
+        if (trade.exit_time && trade.exit_price) {
+          const exitTime = new Date(trade.exit_time).getTime();
+          exitTrades.push({ time: exitTime, price: trade.exit_price, pnl: trade.pnl || 0 });
+        }
+      });
+    }
+
+    // Get all bar timestamps for finding closest matches
+    const barTimes = downsampledBars.map((bar) => new Date(bar.time).getTime());
+
+    // Find closest bar index for a given timestamp
+    const findClosestBarIndex = (targetTime: number): number => {
+      let closestIdx = 0;
+      let closestDiff = Math.abs(barTimes[0] - targetTime);
+      for (let i = 1; i < barTimes.length; i++) {
+        const diff = Math.abs(barTimes[i] - targetTime);
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    };
+
+    // Map bar indices to trade data
+    const entryByIndex = new Map<number, number>();
+    const exitByIndex = new Map<number, { price: number; pnl: number }>();
+
+    entryTrades.forEach(({ time, price }) => {
+      const idx = findClosestBarIndex(time);
+      entryByIndex.set(idx, price);
+    });
+
+    exitTrades.forEach(({ time, price, pnl }) => {
+      const idx = findClosestBarIndex(time);
+      exitByIndex.set(idx, { price, pnl });
+    });
+
+    const data = downsampledBars.map((bar, idx) => {
       const timeMs = new Date(bar.time).getTime();
+      const entryPrice = entryByIndex.get(idx);
+      const exitData = exitByIndex.get(idx);
+
       return {
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close,
+        volume: bar.volume,
         time: timeMs,
         timeStr: formatShortDate(bar.time),
-        ...bar,
+        // Use close price for dot positioning (on the line), store actual prices for tooltip
+        entry: entryPrice !== undefined ? bar.close : undefined,
+        entryPrice,
+        exit: exitData ? bar.close : undefined,
+        exitPrice: exitData?.price,
+        exitPnl: exitData?.pnl,
         ...(indicatorByTime.get(timeMs) || {}),
       };
     });
 
     return { chartData: data, indicatorLabels: labels };
-  }, [downsampledBars, indicators]);
+  }, [downsampledBars, indicators, trades]);
 
   if (!downsampledBars?.length) {
     return (
@@ -852,8 +909,8 @@ function PriceChart({
     "bb_lower" in indicatorLabels;
 
   return (
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
+    <div>
+      <ResponsiveContainer width="100%" aspect={2.5} minHeight={320}>
         <ComposedChart data={chartData} margin={{ top: 10, right: 40, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis
@@ -911,6 +968,16 @@ function PriceChart({
                       <span className="font-semibold">{formatCompactNumber(data.volume)}</span>
                     </p>
                   </div>
+                  {data.entryPrice && (
+                    <p className="text-xs text-success mt-1">
+                      Entry @ {formatCurrency(data.entryPrice)}
+                    </p>
+                  )}
+                  {data.exitPrice && (
+                    <p className={`text-xs mt-1 ${data.exitPnl >= 0 ? "text-success" : "text-danger"}`}>
+                      Exit @ {formatCurrency(data.exitPrice)} ({data.exitPnl >= 0 ? "+" : ""}{formatCurrency(data.exitPnl)})
+                    </p>
+                  )}
                   {indicatorEntries.length > 0 && (
                     <div className="mt-2 border-t pt-2 space-y-0.5 text-xs text-default-600">
                       {indicatorEntries.map(([key, label]) => (
@@ -927,14 +994,14 @@ function PriceChart({
               );
             }}
           />
-          {hasBollinger && (
-            <Legend
-              verticalAlign="top"
-              height={24}
-              wrapperStyle={{ fontSize: "11px" }}
-            />
-          )}
-          {/* Simple line for debugging - replace with candlesticks later */}
+          {/* Volume bars */}
+          <Bar
+            yAxisId="volume"
+            dataKey="volume"
+            fill="hsl(var(--heroui-default-300))"
+            opacity={0.3}
+          />
+          {/* Price line */}
           <Line
             yAxisId="price"
             type="monotone"
@@ -943,50 +1010,56 @@ function PriceChart({
             strokeWidth={2}
             dot={false}
           />
-          <Bar
-            dataKey="volume"
-            yAxisId="volume"
-            barSize={6}
-            fill="hsl(var(--heroui-foreground))"
-            fillOpacity={0.12}
+          {/* Trade entry markers */}
+          <Scatter
+            yAxisId="price"
+            dataKey="entry"
+            fill="hsl(var(--heroui-success))"
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return (
+                <circle
+                  cx={props.cx}
+                  cy={props.cy}
+                  r={5}
+                  fill="hsl(var(--heroui-success))"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+              );
+            }}
           />
-          {"bb_upper" in indicatorLabels && (
-            <Line
-              yAxisId="price"
-              type="monotone"
-              dataKey="bb_upper"
-              stroke="rgba(59, 130, 246, 0.7)"
-              strokeWidth={1.5}
-              strokeDasharray="4 3"
-              dot={false}
-              name={indicatorLabels.bb_upper}
-            />
-          )}
-          {"bb_middle" in indicatorLabels && (
-            <Line
-              yAxisId="price"
-              type="monotone"
-              dataKey="bb_middle"
-              stroke="rgba(59, 130, 246, 0.7)"
-              strokeWidth={1.5}
-              dot={false}
-              name={indicatorLabels.bb_middle}
-            />
-          )}
-          {"bb_lower" in indicatorLabels && (
-            <Line
-              yAxisId="price"
-              type="monotone"
-              dataKey="bb_lower"
-              stroke="rgba(59, 130, 246, 0.7)"
-              strokeWidth={1.5}
-              strokeDasharray="4 3"
-              dot={false}
-              name={indicatorLabels.bb_lower}
-            />
-          )}
+          {/* Trade exit markers */}
+          <Scatter
+            yAxisId="price"
+            dataKey="exit"
+            fill="hsl(var(--heroui-danger))"
+            shape={(props: { cx: number; cy: number }) => {
+              if (props.cy == null) return null;
+              return (
+                <circle
+                  cx={props.cx}
+                  cy={props.cy}
+                  r={5}
+                  fill="hsl(var(--heroui-danger))"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+              );
+            }}
+          />
         </ComposedChart>
       </ResponsiveContainer>
+      {trades && trades.length > 0 && (
+        <div className="flex justify-center gap-6 mt-2 text-xs text-default-500">
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-success border-2 border-white" /> Entry
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-danger border-2 border-white" /> Exit
+          </span>
+        </div>
+      )}
     </div>
   );
 }
