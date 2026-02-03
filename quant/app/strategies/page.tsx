@@ -138,32 +138,34 @@ export default function StrategiesPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <Card className="bg-danger-50 border-danger-200">
-          <CardBody>
-            <p className="text-danger">{error}</p>
-            <Button
-              color="danger"
-              variant="flat"
-              className="mt-4"
-              onPress={loadStrategies}
-            >
-              Retry
-            </Button>
-          </CardBody>
-        </Card>
+      <div className="absolute inset-0 overflow-y-auto bg-gradient-to-b from-stone-50 via-white to-stone-100">
+        <div className="container mx-auto px-4 py-8 pt-24 max-w-6xl">
+          <Card className="bg-red-50 border border-red-200">
+            <CardBody>
+              <p className="text-red-600">{error}</p>
+              <Button
+                color="danger"
+                variant="flat"
+                className="mt-4"
+                onPress={loadStrategies}
+              >
+                Retry
+              </Button>
+            </CardBody>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="absolute inset-0 overflow-y-auto">
+    <div className="absolute inset-0 overflow-y-auto bg-gradient-to-b from-stone-50 via-white to-stone-100">
       <div className="container mx-auto px-4 py-8 pt-24 pb-12 max-w-6xl">
         {/* Header - pt-24 accounts for fixed navbar */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">My Strategies</h1>
-            <p className="text-default-500 mt-1">
+            <h1 className="text-3xl font-bold text-stone-900">My Strategies</h1>
+            <p className="text-stone-500 mt-1">
               {strategies.length > 0
                 ? `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
                 : "Manage your trading strategies and run backtests"}
@@ -173,26 +175,26 @@ export default function StrategiesPage() {
 
         {/* Strategies Grid */}
         {strategies.length === 0 ? (
-          <Card className="bg-default-50">
+          <Card className="bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm">
             <CardBody className="py-12">
               <div className="text-center">
-                <Layers className="w-12 h-12 mx-auto text-default-300 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">
+                <Layers className="w-12 h-12 mx-auto text-stone-300 mb-4" />
+                <h3 className="text-xl font-semibold mb-2 text-stone-900">
                   Welcome — add your first strategy
                 </h3>
-                <p className="text-default-500 mb-6">
+                <p className="text-stone-500 mb-6">
                   Strategies are created through Claude Code via the Vibe Trade MCP
                   server.
                 </p>
               </div>
 
-              <div className="mx-auto max-w-2xl space-y-4 text-sm text-default-600">
-                <p className="font-medium text-default-700">
+              <div className="mx-auto max-w-2xl space-y-4 text-sm text-stone-600">
+                <p className="font-medium text-stone-700">
                   Connect to Quant in Claude:
                 </p>
                 <div className="space-y-3">
                   <div>
-                    <p className="font-medium text-default-600 mb-1">Claude Desktop:</p>
+                    <p className="font-medium text-stone-600 mb-1">Claude Desktop:</p>
                     <ol className="space-y-1 list-decimal list-inside text-xs">
                       <li>Open Claude Desktop → Settings → Connectors</li>
                       <li>Click "Add custom connector"</li>
@@ -202,20 +204,20 @@ export default function StrategiesPage() {
                     </ol>
                   </div>
                   <div>
-                    <p className="font-medium text-default-600 mb-1">Claude Code CLI:</p>
+                    <p className="font-medium text-stone-600 mb-1">Claude Code CLI:</p>
                     <ol className="space-y-1 list-decimal list-inside text-xs">
                       <li>Run: <span className="font-mono">claude mcp add --transport http quant https://vibe-trade-mcp-kff5sbwvca-uc.a.run.app/mcp</span></li>
                       <li>Authenticate with Google when prompted</li>
                     </ol>
                   </div>
                 </div>
-                <div className="rounded-lg border border-default-200 bg-default-100/60 p-4">
-                  <p className="text-xs font-medium text-default-700 mb-2">Remote MCP Server URL:</p>
-                  <pre className="whitespace-pre-wrap text-xs text-default-700 font-mono">
+                <div className="rounded-lg border border-stone-200 bg-stone-50/60 p-4">
+                  <p className="text-xs font-medium text-stone-700 mb-2">Remote MCP Server URL:</p>
+                  <pre className="whitespace-pre-wrap text-xs text-stone-700 font-mono">
 https://vibe-trade-mcp-kff5sbwvca-uc.a.run.app/mcp
                   </pre>
                 </div>
-                <p className="text-xs text-default-500">
+                <p className="text-xs text-stone-500">
                   Once connected, ask Claude to create a trading strategy and it will
                   appear here automatically.
                 </p>
@@ -238,20 +240,20 @@ https://vibe-trade-mcp-kff5sbwvca-uc.a.run.app/mcp
       </div>
       <Modal isOpen={isDeleteOpen} onClose={closeDeleteModal}>
         <ModalContent>
-          <ModalHeader>Delete Strategy?</ModalHeader>
+          <ModalHeader className="text-stone-900">Delete Strategy?</ModalHeader>
           <ModalBody>
-            <p className="text-default-600">
+            <p className="text-stone-600">
               This will permanently delete this strategy, all cards, and all
               backtests. This action cannot be undone.
             </p>
             {strategyToDelete && (
-              <p className="text-sm text-default-500">
-                Strategy: <span className="font-medium">{strategyToDelete.name}</span>
+              <p className="text-sm text-stone-500">
+                Strategy: <span className="font-medium text-stone-700">{strategyToDelete.name}</span>
               </p>
             )}
-            {deleteError && <p className="text-danger text-sm">{deleteError}</p>}
+            {deleteError && <p className="text-red-600 text-sm">{deleteError}</p>}
             {isDeleting && (
-              <div className="flex items-center gap-2 text-default-500">
+              <div className="flex items-center gap-2 text-stone-500">
                 <Spinner size="sm" />
                 <span className="text-sm">Deleting strategy...</span>
               </div>
@@ -295,11 +297,11 @@ function StrategyCard({
     <Card
       isPressable
       onPress={onClick}
-      className="group hover:bg-default-50 transition-colors"
+      className="group bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm hover:bg-white hover:shadow-md transition-all"
     >
       <CardHeader className="flex justify-between items-start pb-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-lg truncate">{strategy.name}</h3>
+          <h3 className="font-semibold text-lg truncate text-stone-900">{strategy.name}</h3>
           <div className="flex items-center gap-2 mt-1">
             <Chip
               size="sm"
@@ -339,10 +341,10 @@ function StrategyCard({
       <CardBody className="pt-3 space-y-3">
         {/* Performance Preview */}
         {hasPerformance && latestBacktest && (
-          <div className="flex items-center justify-between p-2 bg-default-50 rounded-lg">
+          <div className="flex items-center justify-between p-2 bg-stone-50 rounded-lg">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-default-400" />
-              <span className="text-xs text-default-500">Latest Backtest</span>
+              <Activity className="w-4 h-4 text-stone-400" />
+              <span className="text-xs text-stone-500">Latest Backtest</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`flex items-center gap-1 ${latestBacktest.total_return! >= 0 ? "text-success" : "text-danger"}`}>
@@ -367,7 +369,7 @@ function StrategyCard({
         )}
 
         {/* Meta info row */}
-        <div className="flex items-center justify-between text-sm text-default-500">
+        <div className="flex items-center justify-between text-sm text-stone-500">
           <div className="flex items-center gap-1">
             <Layers className="w-4 h-4" />
             <span>
