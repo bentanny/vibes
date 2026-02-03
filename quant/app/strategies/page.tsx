@@ -204,8 +204,7 @@ export default function StrategiesPage() {
                   <div>
                     <p className="font-medium text-default-600 mb-1">Claude Code CLI:</p>
                     <ol className="space-y-1 list-decimal list-inside text-xs">
-                      <li>Run: <span className="font-mono">claude mcp add</span></li>
-                      <li>Enter the remote MCP server URL below</li>
+                      <li>Run: <span className="font-mono">claude mcp add https://vibe-trade-mcp-kff5sbwvca-uc.a.run.app/mcp</span></li>
                       <li>Authenticate with Google when prompted</li>
                     </ol>
                   </div>
