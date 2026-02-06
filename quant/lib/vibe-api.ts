@@ -129,7 +129,7 @@ export interface BacktestResults {
   equity_curve?: EquityPoint[];
   final_equity?: number;
   ohlcv_bars?: OHLCVBar[];
-  indicators?: Record<string, Array<Record<string, any>>>;
+  indicators?: Record<string, any>;
 }
 
 export interface PerformanceStatistics {

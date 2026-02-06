@@ -53,6 +53,7 @@ import {
   formatPercent,
   formatDate,
 } from "@/lib/vibe-api";
+import { expandIndicators } from "@/lib/compact-format";
 
 interface BacktestVisualizationProps {
   result: BacktestResponse;
@@ -257,7 +258,7 @@ export function BacktestVisualization({
               <div className="p-4">
                 <PriceChart
                   ohlcvBars={result.results.ohlcv_bars}
-                  indicators={result.results.indicators}
+                  indicators={expandIndicators(result.results.indicators, result.results.ohlcv_bars)}
                   trades={result.results.trades}
                 />
               </div>
