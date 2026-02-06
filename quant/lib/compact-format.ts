@@ -19,8 +19,8 @@ type VerboseIndicators = Record<string, VerboseIndicatorPoint[]>;
 /**
  * Expand compact indicator format to verbose format for chart rendering.
  *
- * Returns null if indicators are missing or empty.
- * Handles both compact (flat arrays) and already-verbose (array of objects) formats.
+ * Returns undefined if indicators are missing or empty.
+ * Expects compact format (flat arrays). Must be deployed alongside vibe-trade compact format.
  */
 export function expandIndicators(
   indicators: Record<string, any> | undefined | null,
